@@ -4,6 +4,9 @@ import type { BridgeConfig } from './types.js';
 interface OpenClawTranscription {
   text?: unknown;
   transcript?: unknown;
+  outputs?: Array<{
+    text?: unknown;
+  }>;
 }
 
 function parseTranscript(stdout: string): string | undefined {
@@ -13,6 +16,8 @@ function parseTranscript(stdout: string): string | undefined {
     const parsed = JSON.parse(trimmed) as OpenClawTranscription;
     if (typeof parsed.text === 'string' && parsed.text.trim()) return parsed.text.trim();
     if (typeof parsed.transcript === 'string' && parsed.transcript.trim()) return parsed.transcript.trim();
+    const outputText = parsed.outputs?.find((output) => typeof output.text === 'string' && output.text.trim())?.text;
+    if (typeof outputText === 'string') return outputText.trim();
   } catch {
     return trimmed;
   }
