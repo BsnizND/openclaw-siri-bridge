@@ -34,7 +34,9 @@ if @message {
             "Content-Type": "application/json"
         }
     )
-    speak("Sent to Jay", true)
+    @responseDict = getDictionary(@response)
+    @spoken = @responseDict['spoken']
+    speak("{@spoken}", true)
 } else {
     speak("No message captured", true)
     stop()

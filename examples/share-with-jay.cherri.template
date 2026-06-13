@@ -36,7 +36,9 @@ if @shouldUpload {
             "Authorization": "Bearer __SIRI_BRIDGE_TOKEN__"
         }
     )
-    speak("Shared with Jay", true)
+    @responseDict = getDictionary(@response)
+    @spoken = @responseDict['spoken']
+    speak("{@spoken}", true)
 } else {
     @sharedUrls = getURLs(@sharedInput)
     @urlCount = count(@sharedUrls)
@@ -62,7 +64,9 @@ if @shouldUpload {
                 "Content-Type": "application/json"
             }
         )
-        speak("Shared with Jay", true)
+        @responseDict = getDictionary(@response)
+        @spoken = @responseDict['spoken']
+        speak("{@spoken}", true)
     } else {
         @sharedText = getText(@sharedInput)
         if @sharedText {
@@ -86,7 +90,9 @@ if @shouldUpload {
                     "Content-Type": "application/json"
                 }
             )
-            speak("Shared with Jay", true)
+            @responseDict = getDictionary(@response)
+            @spoken = @responseDict['spoken']
+            speak("{@spoken}", true)
         } else {
             speak("No shareable input captured", true)
             stop()

@@ -41,6 +41,24 @@ export function createApp(config: BridgeConfig, deps: AppDependencies = {}) {
   });
 
   app.disable('x-powered-by');
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/shortcuts/')) {
+      const startedAt = Date.now();
+      res.on('finish', () => {
+        logger.info(
+          {
+            method: req.method,
+            path: req.path,
+            statusCode: res.statusCode,
+            durationMs: Date.now() - startedAt,
+            contentType: req.header('content-type')
+          },
+          'shortcut request completed'
+        );
+      });
+    }
+    next();
+  });
   app.use(express.json({ limit: '32kb' }));
 
   app.get('/healthz', (_req, res) => {
