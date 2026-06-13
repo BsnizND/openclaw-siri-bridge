@@ -1,6 +1,61 @@
 # Apple Shortcut setup
 
-Create the Shortcut on iPhone first, then enable it for Apple Watch.
+You can either create the Shortcut manually on iPhone, or generate a signed `.shortcut` file with Cherri and import it.
+
+Do not commit generated Shortcut artifacts. They contain the bearer token.
+
+## Generate with Cherri
+
+The repo includes a token-free Cherri template at `examples/tell-jay.cherri.template` and a helper script that generates a signed Shortcut locally.
+
+On macOS:
+
+```bash
+export SIRI_BRIDGE_URL='https://your-public-bridge.example.com/shortcuts/message'
+export SIRI_BRIDGE_TOKEN='your-long-random-token'
+./scripts/build-shortcut.sh
+```
+
+The script writes:
+
+```text
+artifacts/shortcuts/Tell Jay.shortcut
+artifacts/shortcuts/Tell Jay.cherri
+```
+
+`Tell Jay.cherri` is the rendered source and contains the bearer token. `Tell Jay.shortcut` is signed and ready to import. Both paths are ignored by git.
+
+By default, the script downloads the Cherri release binary for the local Mac architecture. To use an existing Cherri binary:
+
+```bash
+CHERRI_BIN=/path/to/cherri ./scripts/build-shortcut.sh
+```
+
+Optional settings:
+
+```bash
+SHORTCUT_NAME='Tell Jay' \
+SHORTCUT_SIGN_MODE='contacts' \
+CHERRI_VERSION='v2.3.0' \
+OUTPUT_DIR="$PWD/artifacts/shortcuts" \
+./scripts/build-shortcut.sh
+```
+
+`SHORTCUT_SIGN_MODE=contacts` maps to Cherri's contacts signing mode. Use `SHORTCUT_SIGN_MODE=anyone` only if you are comfortable sharing the Shortcut more broadly. Apple notes that signing validates the Shortcut for sharing.
+
+Send the generated `.shortcut` file to the iPhone through AirDrop, Mail, Messages, or iCloud Drive, then open it on the iPhone and approve the import. Apple requires the user import step.
+
+The generated Shortcut:
+
+1. Uses `Dictate Text`.
+2. Checks that a message was captured.
+3. Sends a JSON `POST` to `/shortcuts/message`.
+4. Adds `Authorization: Bearer <SIRI_BRIDGE_TOKEN>`.
+5. Speaks `Sent to Jay` after the request.
+
+After import, enable `Show on Apple Watch` in the Shortcut details.
+
+## Manual Shortcut actions
 
 ## Shortcut actions
 

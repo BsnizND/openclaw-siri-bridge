@@ -1,0 +1,29 @@
+#include 'actions/text'
+#include 'actions/web'
+
+#define name Tell Jay
+#define glyph sendMessage
+#define color blue
+
+@message = listen("After Pause", "en-US")
+
+if @message {
+    @response = jsonRequest(
+        "__SIRI_BRIDGE_URL__",
+        "POST",
+        {
+            "message": "{@message}",
+            "source": "siri_watch",
+            "device_name": "Apple Watch",
+            "shortcut_name": "Tell Jay"
+        },
+        {
+            "Authorization": "Bearer __SIRI_BRIDGE_TOKEN__",
+            "Content-Type": "application/json"
+        }
+    )
+    speak("Sent to Jay", true)
+} else {
+    speak("No message captured", true)
+    stop()
+}

@@ -7,3 +7,4 @@ coverage/
 data/
 *.log
 .DS_Store
+artifacts/shortcuts/
