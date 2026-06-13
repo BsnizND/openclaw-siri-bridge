@@ -1,4 +1,5 @@
 export type OpenClawAdapter = 'cli' | 'http';
+export type OpenClawMessageStyle = 'detailed' | 'compact';
 
 export interface BridgeConfig {
   port: number;
@@ -13,8 +14,13 @@ export interface BridgeConfig {
   openclawCliBin: string;
   openclawCliDrainTimeoutMs: number;
   openclawCliThinking?: string;
+  openclawDeliverReply: boolean;
+  openclawReplyChannel?: string;
+  openclawReplyTo?: string;
   openclawWorkdir?: string;
   openclawSessionKey: string;
+  openclawMessageStyle: OpenClawMessageStyle;
+  siriMessagePrefix?: string;
   openclawIngestUrl?: string;
   openclawIngestToken?: string;
   queuePath: string;

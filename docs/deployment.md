@@ -35,6 +35,24 @@ GET /healthz
 
 Do not expose queue files, logs, OpenClaw admin routes, shell access, or local runtime dashboards.
 
+## Delivery modes
+
+The default CLI delivery path queues Shortcut requests immediately and drains them through `openclaw agent` in the background. This gives Siri/Shortcuts a fast `202 Accepted` response even when the agent turn takes longer.
+
+For a Telegram direct-message experience, point `OPENCLAW_SESSION_KEY` at the existing Telegram session and ask OpenClaw to deliver the assistant response back to Telegram:
+
+```text
+OPENCLAW_ADAPTER=cli
+OPENCLAW_SESSION_KEY=agent:jay:telegram:default:direct:brian
+OPENCLAW_DELIVER_REPLY=true
+OPENCLAW_REPLY_CHANNEL=telegram
+OPENCLAW_REPLY_TO=telegram:1234567890
+OPENCLAW_MESSAGE_STYLE=compact
+SIRI_MESSAGE_PREFIX=Sent via Apple Watch voice message:
+```
+
+That mode does not send a Telegram message as the human user. It injects the transcript into the OpenClaw session that backs the Telegram direct chat, then delivers Jay's response to the configured Telegram target.
+
 ## Systemd example
 
 ```ini

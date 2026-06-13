@@ -29,5 +29,32 @@ describe('config', () => {
     expect(config.assistantId).toBe('jay');
     expect(config.allowedSources.has('siri_watch')).toBe(true);
     expect(config.openclawAdapter).toBe('cli');
+    expect(config.openclawDeliverReply).toBe(false);
+    expect(config.openclawMessageStyle).toBe('detailed');
+  });
+
+  it('requires reply routing when OpenClaw delivery is enabled', () => {
+    expect(() =>
+      loadConfig({
+        SIRI_BRIDGE_TOKEN: '0123456789abcdef01234567',
+        OPENCLAW_DELIVER_REPLY: 'true'
+      })
+    ).toThrow('OPENCLAW_REPLY_CHANNEL and OPENCLAW_REPLY_TO');
+  });
+
+  it('loads Telegram direct reply routing', () => {
+    const config = loadConfig({
+      SIRI_BRIDGE_TOKEN: '0123456789abcdef01234567',
+      OPENCLAW_DELIVER_REPLY: 'true',
+      OPENCLAW_REPLY_CHANNEL: 'telegram',
+      OPENCLAW_REPLY_TO: 'telegram:1234',
+      OPENCLAW_MESSAGE_STYLE: 'compact',
+      SIRI_MESSAGE_PREFIX: 'Sent via Apple Watch voice message:'
+    });
+    expect(config.openclawDeliverReply).toBe(true);
+    expect(config.openclawReplyChannel).toBe('telegram');
+    expect(config.openclawReplyTo).toBe('telegram:1234');
+    expect(config.openclawMessageStyle).toBe('compact');
+    expect(config.siriMessagePrefix).toBe('Sent via Apple Watch voice message:');
   });
 });

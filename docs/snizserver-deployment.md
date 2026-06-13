@@ -49,10 +49,15 @@ PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 SIRI_BRIDGE_TOKEN=<secret>
 OPENCLAW_ADAPTER=cli
 OPENCLAW_ASSISTANT_ID=jay
-OPENCLAW_SESSION_KEY=agent:jay:main
+OPENCLAW_SESSION_KEY=agent:jay:telegram:default:direct:brian
 OPENCLAW_CLI_BIN=/opt/homebrew/bin/openclaw
 OPENCLAW_CLI_DRAIN_TIMEOUT_MS=120000
 OPENCLAW_CLI_THINKING=minimal
+OPENCLAW_DELIVER_REPLY=true
+OPENCLAW_REPLY_CHANNEL=telegram
+OPENCLAW_REPLY_TO=telegram:8380430855
+OPENCLAW_MESSAGE_STYLE=compact
+SIRI_MESSAGE_PREFIX=Sent via Apple Watch voice message:
 OPENCLAW_WORKDIR=/Users/briansnyder/.openclaw/workspace-main
 QUEUE_PATH=/Volumes/LaCie_6big/briansnyder/repos/openclaw-siri-bridge/data/siri-queue.jsonl
 QUEUE_DRAIN_INTERVAL_MS=30000
@@ -110,3 +115,4 @@ Example body:
 - The first authenticated public smoke failed before the service `PATH` included Homebrew, because the OpenClaw shim uses `/usr/bin/env node`. The env now includes Homebrew in `PATH`.
 - A later authenticated public smoke delivered successfully to Jay; Jay replied: `Received. No tasks or reminders created.`
 - Tailscale Funnel only allows public listeners on `443`, `8443`, and `10000`. The live deployment uses `8443` because that listener is already public for the Alexa bridge; the Siri bridge is added as a separate path handler on the same listener.
+- Brian's deployment uses the Telegram direct session key plus `OPENCLAW_DELIVER_REPLY=true`, so dictated messages enter Jay's Telegram continuity lane and Jay's response is delivered back to Brian in Telegram.

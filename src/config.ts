@@ -14,8 +14,13 @@ const envSchema = z.object({
   OPENCLAW_CLI_BIN: z.string().min(1).default('openclaw'),
   OPENCLAW_CLI_DRAIN_TIMEOUT_MS: z.coerce.number().int().positive().default(120000),
   OPENCLAW_CLI_THINKING: z.string().optional(),
+  OPENCLAW_DELIVER_REPLY: z.coerce.boolean().default(false),
+  OPENCLAW_REPLY_CHANNEL: z.string().min(1).optional(),
+  OPENCLAW_REPLY_TO: z.string().min(1).optional(),
   OPENCLAW_WORKDIR: z.string().min(1).optional(),
   OPENCLAW_SESSION_KEY: z.string().min(1).default('agent:jay:main'),
+  OPENCLAW_MESSAGE_STYLE: z.enum(['detailed', 'compact']).default('detailed'),
+  SIRI_MESSAGE_PREFIX: z.string().min(1).optional(),
   OPENCLAW_INGEST_URL: z.string().url().optional(),
   OPENCLAW_INGEST_TOKEN: z.string().optional(),
   QUEUE_PATH: z.string().min(1).default('./data/siri-queue.jsonl'),
@@ -43,6 +48,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BridgeConfig {
   if (raw.OPENCLAW_ADAPTER === 'http' && (!raw.OPENCLAW_INGEST_URL || !raw.OPENCLAW_INGEST_TOKEN)) {
     throw new Error('OPENCLAW_INGEST_URL and OPENCLAW_INGEST_TOKEN are required for OPENCLAW_ADAPTER=http');
   }
+  if (raw.OPENCLAW_DELIVER_REPLY && (!raw.OPENCLAW_REPLY_CHANNEL || !raw.OPENCLAW_REPLY_TO)) {
+    throw new Error('OPENCLAW_REPLY_CHANNEL and OPENCLAW_REPLY_TO are required when OPENCLAW_DELIVER_REPLY=true');
+  }
 
   const allowedSources = parseAllowedSources(raw.ALLOWED_SOURCES);
   if (allowedSources.size === 0) {
@@ -62,8 +70,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BridgeConfig {
     openclawCliBin: raw.OPENCLAW_CLI_BIN,
     openclawCliDrainTimeoutMs: raw.OPENCLAW_CLI_DRAIN_TIMEOUT_MS,
     openclawCliThinking: raw.OPENCLAW_CLI_THINKING,
+    openclawDeliverReply: raw.OPENCLAW_DELIVER_REPLY,
+    openclawReplyChannel: raw.OPENCLAW_REPLY_CHANNEL,
+    openclawReplyTo: raw.OPENCLAW_REPLY_TO,
     openclawWorkdir: raw.OPENCLAW_WORKDIR,
     openclawSessionKey: raw.OPENCLAW_SESSION_KEY,
+    openclawMessageStyle: raw.OPENCLAW_MESSAGE_STYLE,
+    siriMessagePrefix: raw.SIRI_MESSAGE_PREFIX,
     openclawIngestUrl: raw.OPENCLAW_INGEST_URL,
     openclawIngestToken: raw.OPENCLAW_INGEST_TOKEN,
     queuePath: raw.QUEUE_PATH,

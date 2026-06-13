@@ -84,6 +84,48 @@ describe('OpenClaw delivery', () => {
     await rm(dir, { recursive: true, force: true });
   });
 
+  it('can deliver queued events through the Telegram direct session', async () => {
+    const dir = join(tmpdir(), `openclaw-siri-telegram-drain-test-${Date.now()}`);
+    await mkdir(dir, { recursive: true });
+    const queuePath = join(dir, 'queue.jsonl');
+    const binPath = join(dir, 'fake-openclaw');
+    const argsPath = join(dir, 'args.txt');
+    await writeFile(binPath, `#!/bin/sh\nprintf '%s\\n' "$@" > '${argsPath}'\n`, 'utf8');
+    await chmod(binPath, 0o755);
+
+    const config = {
+      openclawAdapter: 'cli',
+      openclawCliBin: binPath,
+      openclawCliDrainTimeoutMs: 1000,
+      openclawCliThinking: 'minimal',
+      openclawDeliverReply: true,
+      openclawReplyChannel: 'telegram',
+      openclawReplyTo: 'telegram:1234',
+      openclawMessageStyle: 'compact',
+      siriMessagePrefix: 'Sent via Apple Watch voice message:',
+      assistantId: 'jay',
+      openclawSessionKey: 'agent:jay:telegram:default:direct:brian',
+      queuePath,
+      queueMaxAttempts: 3
+    } as BridgeConfig;
+
+    await acceptForOpenClaw(config, event('please add eggs to the shopping list'));
+    const drain = await drainOpenClawQueue(config);
+
+    expect(drain).toEqual({ delivered: 1, failed: 0, pending: 0 });
+    const args = await readFile(argsPath, 'utf8');
+    expect(args).toContain('--session-key');
+    expect(args).toContain('agent:jay:telegram:default:direct:brian');
+    expect(args).toContain('--message');
+    expect(args).toContain('Sent via Apple Watch voice message: please add eggs to the shopping list');
+    expect(args).toContain('--deliver');
+    expect(args).toContain('--reply-channel');
+    expect(args).toContain('telegram');
+    expect(args).toContain('--reply-to');
+    expect(args).toContain('telegram:1234');
+    await rm(dir, { recursive: true, force: true });
+  });
+
   it('marks queued events failed after the configured attempt limit', async () => {
     const dir = join(tmpdir(), `openclaw-siri-failed-drain-test-${Date.now()}`);
     await mkdir(dir, { recursive: true });

@@ -20,6 +20,7 @@ The bridge is assistant-agnostic. `jay` is only the default example assistant id
 - Fast `202 Accepted` response for Siri/Shortcuts.
 - Durable JSONL queue with delivered/failed status.
 - Background delivery to OpenClaw through CLI or HTTP ingest.
+- Optional OpenClaw reply delivery back to a messaging channel, such as an existing Telegram direct session.
 - Shortcut-friendly `spoken` response field for confirmation.
 
 ## Non-goals
@@ -105,6 +106,10 @@ Important settings:
 - `OPENCLAW_SESSION_KEY`: OpenClaw session key for CLI delivery.
 - `OPENCLAW_WORKDIR`: optional directory to use when spawning the OpenClaw CLI.
 - `OPENCLAW_ADAPTER`: `cli` or `http`.
+- `OPENCLAW_DELIVER_REPLY`: set to `true` when OpenClaw should deliver the assistant reply back to a channel.
+- `OPENCLAW_REPLY_CHANNEL` / `OPENCLAW_REPLY_TO`: reply route for `OPENCLAW_DELIVER_REPLY`.
+- `OPENCLAW_MESSAGE_STYLE`: `detailed` metadata payload or `compact` user-facing transcript.
+- `SIRI_MESSAGE_PREFIX`: optional prefix for compact messages, for example `Sent via Apple Watch voice message:`.
 - `QUEUE_PATH`: JSONL queue path.
 - `MAX_MESSAGE_CHARS`: maximum accepted dictated text length.
 - `ALLOWED_SOURCES`: comma-separated source allowlist.

@@ -18,6 +18,15 @@ function buildAssistantMessage(event: NormalizedSiriEvent): string {
     .join('\n');
 }
 
+function buildCompactMessage(config: BridgeConfig, event: NormalizedSiriEvent): string {
+  const prefix = config.siriMessagePrefix?.trim();
+  return prefix ? `${prefix} ${event.raw_text}` : event.raw_text;
+}
+
+function buildOpenClawMessage(config: BridgeConfig, event: NormalizedSiriEvent): string {
+  return config.openclawMessageStyle === 'compact' ? buildCompactMessage(config, event) : buildAssistantMessage(event);
+}
+
 async function deliverViaCli(config: BridgeConfig, event: NormalizedSiriEvent): Promise<DeliveryResult> {
   const timeoutMs = config.openclawCliDrainTimeoutMs;
   const args = [
@@ -27,13 +36,22 @@ async function deliverViaCli(config: BridgeConfig, event: NormalizedSiriEvent): 
     '--session-key',
     config.openclawSessionKey,
     '--message',
-    buildAssistantMessage(event),
+    buildOpenClawMessage(config, event),
     '--json',
     '--timeout',
     String(Math.ceil(timeoutMs / 1000))
   ];
   if (config.openclawCliThinking) {
     args.push('--thinking', config.openclawCliThinking);
+  }
+  if (config.openclawDeliverReply) {
+    args.push('--deliver');
+    if (config.openclawReplyChannel) {
+      args.push('--reply-channel', config.openclawReplyChannel);
+    }
+    if (config.openclawReplyTo) {
+      args.push('--reply-to', config.openclawReplyTo);
+    }
   }
 
   return new Promise((resolve, reject) => {
