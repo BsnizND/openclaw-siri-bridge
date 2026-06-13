@@ -117,6 +117,8 @@ See [docs/shortcut-setup.md](docs/shortcut-setup.md).
 
 See [docs/deployment.md](docs/deployment.md).
 
+Brian's live `snizserver` deployment notes are in [docs/snizserver-deployment.md](docs/snizserver-deployment.md).
+
 ## Security
 
 See [docs/security.md](docs/security.md).
