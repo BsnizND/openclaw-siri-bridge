@@ -5,12 +5,11 @@
 #define name Share with Jay
 #define glyph sendMessage
 #define color blue
-#define inputs file, media, url, text, webpage, image, pdf
+#define inputs file, media, image, pdf
 #define noinput stopwith "No input provided"
 #define from sharesheet
 
 @sharedInput = ShortcutInput
-@sharedText = getText(@sharedInput)
 @currentLocation = getCurrentLocation()
 @latitude = getLocationDetail(@currentLocation, 'Latitude')
 @longitude = getLocationDetail(@currentLocation, 'Longitude')
@@ -22,7 +21,6 @@
     "POST",
     {
         "file": "${sharedInput}",
-        "shared_text": "{@sharedText}",
         "source": "ios_share_sheet",
         "device_name": "iPhone",
         "shortcut_name": "Share with Jay",

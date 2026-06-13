@@ -123,15 +123,28 @@ Example body:
 }
 ```
 
-## Share with Jay Shortcut
+## Share Shortcuts
 
-The iPhone share-sheet shortcut should:
+Use two share-sheet shortcuts so iOS does not try to coerce links or webpages
+into file uploads before the request is sent.
 
-1. Receive `file`, `media`, `url`, `text`, `webpage`, `image`, or `pdf` input from the share sheet.
+The `Share with Jay` file/audio shortcut should:
+
+1. Receive `file`, `media`, `image`, or `pdf` input from the share sheet.
 2. Get current location.
 3. Send a multipart form `POST` to `/shortcuts/share`.
-4. Include the shared input as form field `file` when it is a file/media item.
-5. Include `shared_text`, `latitude`, `longitude`, `altitude`, and `maps_url`.
+4. Include the shared input as form field `file`.
+5. Include `latitude`, `longitude`, `altitude`, and `maps_url`.
+6. Send `Authorization: Bearer <SIRI_BRIDGE_TOKEN>`.
+7. Speak `Shared with Jay`.
+
+The `Share Link with Jay` link/text shortcut should:
+
+1. Receive `url`, `text`, or `webpage` input from the share sheet.
+2. Get current location.
+3. Send a JSON `POST` to `/shortcuts/message`.
+4. Include the shared text/link in `message`.
+5. Include `latitude`, `longitude`, `altitude`, and `maps_url` under `location`.
 6. Send `Authorization: Bearer <SIRI_BRIDGE_TOKEN>`.
 7. Speak `Shared with Jay`.
 
