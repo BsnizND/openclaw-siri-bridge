@@ -18,7 +18,7 @@ The launch helper parses `.env.runtime` as key/value data and imports `dist/src/
 Public HTTPS route:
 
 ```text
-https://snizserver.barred-komodo.ts.net:10000/shortcuts/message
+https://snizserver.barred-komodo.ts.net:8443/shortcuts/message
 ```
 
 Expected Tailscale handler:
@@ -30,9 +30,9 @@ Expected Tailscale handler:
 The route is intentionally path-scoped. Do not expose the whole service root. These public probes should remain closed:
 
 ```text
-https://snizserver.barred-komodo.ts.net:10000/
-https://snizserver.barred-komodo.ts.net:10000/healthz
-https://snizserver.barred-komodo.ts.net:10000/internal/announce
+https://snizserver.barred-komodo.ts.net:8443/
+https://snizserver.barred-komodo.ts.net:8443/healthz
+https://snizserver.barred-komodo.ts.net:8443/internal/announce
 ```
 
 Unauthenticated `POST /shortcuts/message` should return `401`.
@@ -74,9 +74,9 @@ ssh snizserver 'openclaw tasks list --json --status running'
 Public route checks:
 
 ```bash
-curl -i https://snizserver.barred-komodo.ts.net:10000/
-curl -i https://snizserver.barred-komodo.ts.net:10000/healthz
-curl -i -X POST https://snizserver.barred-komodo.ts.net:10000/shortcuts/message \
+curl -i https://snizserver.barred-komodo.ts.net:8443/
+curl -i https://snizserver.barred-komodo.ts.net:8443/healthz
+curl -i -X POST https://snizserver.barred-komodo.ts.net:8443/shortcuts/message \
   -H 'Content-Type: application/json' \
   -d '{"message":"no auth probe","source":"shortcuts"}'
 ```
@@ -109,3 +109,4 @@ Example body:
 - The initial service start failed when `.env.runtime` was shell-sourced from the LaCie checkout. The current Node launch helper is the fix.
 - The first authenticated public smoke failed before the service `PATH` included Homebrew, because the OpenClaw shim uses `/usr/bin/env node`. The env now includes Homebrew in `PATH`.
 - A later authenticated public smoke delivered successfully to Jay; Jay replied: `Received. No tasks or reminders created.`
+- Tailscale Funnel only allows public listeners on `443`, `8443`, and `10000`. The live deployment uses `8443` because that listener is already public for the Alexa bridge; the Siri bridge is added as a separate path handler on the same listener.

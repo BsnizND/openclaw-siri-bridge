@@ -44,3 +44,24 @@ Siri generally does not pass arbitrary free-form text after the shortcut name as
 2. Wait for dictation.
 3. Speak the message.
 4. Let the shortcut POST the transcript.
+
+## Sharing and device sync
+
+Apple supports sharing shortcuts through iCloud links or as `.shortcut` files, and it supports syncing shortcuts across Apple devices when iCloud Sync is enabled. The practical install flow is:
+
+1. Create or import the shortcut on iPhone or Mac.
+2. Confirm the URL and bearer token during import/setup.
+3. Enable `Show on Apple Watch`.
+4. Let iCloud Sync copy it to the watch.
+
+The macOS `shortcuts` command can run, view, and sign shortcut files, but it does not provide a supported command to generate and install a new multi-action shortcut directly onto an iPhone. If you create a shareable shortcut template, the bridge repo can host the signed `.shortcut` file and users can import it with Apple's normal approval flow.
+
+## Brian's live route
+
+Brian's current deployment URL is:
+
+```text
+https://snizserver.barred-komodo.ts.net:8443/shortcuts/message
+```
+
+The bearer token is intentionally not stored in this repository.
