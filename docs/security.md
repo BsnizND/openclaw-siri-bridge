@@ -11,4 +11,6 @@
 - Rotate the token immediately if a shared Shortcut exposes it.
 - Store share-sheet uploads outside any public web root and avoid logging bearer tokens or transcript text.
 
-The bridge intentionally returns a short `spoken` field so Siri can confirm success without exposing logs or internal runtime details.
+The bridge intentionally returns a short `spoken` field so Shortcuts can show
+clear error notifications without exposing logs or internal runtime details.
+Generated shortcuts stay silent on success.

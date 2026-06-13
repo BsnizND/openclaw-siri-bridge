@@ -25,7 +25,7 @@ The bridge is assistant-agnostic. `jay` is only the default example assistant id
 - Optional structured location context, including latitude, longitude, altitude, accuracy, and a map URL.
 - Optional voice memo metadata/transcript context for Shortcuts that can provide an audio transcript.
 - Optional server-side audio transcription for shared Voice Memos/audio files.
-- Shortcut-friendly `spoken` response field for confirmation.
+- Shortcut-friendly `spoken` response field for error notifications.
 
 ## Non-goals
 
@@ -141,6 +141,10 @@ Success:
   "spoken": "Sent to jay"
 }
 ```
+
+The generated Shortcuts are silent on success. They read `spoken` only when
+the bridge returns an error, so a normal send is confirmed by the assistant's
+reply in the destination channel instead of by Siri or an iOS notification.
 
 ## Configuration
 

@@ -69,7 +69,8 @@ The generated Shortcut:
 3. Checks that a message was captured.
 4. Sends a JSON `POST` to `/shortcuts/message`.
 5. Adds `Authorization: Bearer <SIRI_BRIDGE_TOKEN>`.
-6. Speaks `Sent to Jay` after the request.
+6. Stays silent on success.
+7. Shows a notification only when the bridge returns an error.
 
 After import, enable `Show on Apple Watch` in the Shortcut details.
 
@@ -84,7 +85,7 @@ Name the shortcut something Siri can hear reliably, for example `Tell Jay`.
 1. Add `Dictate Text`.
 2. Add `Set Variable`; name it `message`.
 3. Add `If`: `message` has no value.
-4. Inside that branch, add `Speak Text` with `No message captured`, then `Stop This Shortcut`.
+4. Inside that branch, add `Show Notification` with `No message captured`, then `Stop This Shortcut`.
 5. Add `Dictionary` with:
    - `message`: `message`
    - `source`: `siri_watch`
@@ -109,7 +110,9 @@ Name the shortcut something Siri can hear reliably, for example `Tell Jay`.
    - `Authorization`: `Bearer your-long-random-token`
    - `Content-Type`: `application/json`
 14. Set Request Body to `JSON` and pass the dictionary.
-15. Parse the response dictionary and `Speak Text` using the `spoken` value.
+15. Parse the response dictionary. If `ok` is false, show a notification using
+    the `spoken` value. If `ok` is true, do nothing and let Jay's Telegram
+    reply be the confirmation.
 
 ## Voice memo workflows
 

@@ -105,7 +105,8 @@ The iPhone/Watch shortcut should:
 3. Stop if no text was captured.
 4. POST JSON to `/shortcuts/message`.
 5. Send `Authorization: Bearer <SIRI_BRIDGE_TOKEN>`.
-6. Speak the response field `spoken`.
+6. If the response `ok` value is false, show the response field `spoken` in a notification.
+7. If the response `ok` value is true, do nothing and let Jay's Telegram reply confirm the send.
 
 Example body:
 
@@ -136,7 +137,8 @@ For files/audio/images/PDFs, the shortcut should:
 4. Include the shared input as form field `file`.
 5. Include `latitude`, `longitude`, `altitude`, and `maps_url`.
 6. Send `Authorization: Bearer <SIRI_BRIDGE_TOKEN>`.
-7. Speak `Shared with Jay`.
+7. If the response `ok` value is false, show the response field `spoken` in a notification.
+8. If the response `ok` value is true, do nothing and let Jay's Telegram reply confirm the send.
 
 For links/text/webpages, the shortcut should:
 
@@ -146,7 +148,8 @@ For links/text/webpages, the shortcut should:
 4. Include the shared text/link in `message`.
 5. Include `latitude`, `longitude`, `altitude`, and `maps_url` under `location`.
 6. Send `Authorization: Bearer <SIRI_BRIDGE_TOKEN>`.
-7. Speak `Shared with Jay`.
+7. If the response `ok` value is false, show the response field `spoken` in a notification.
+8. If the response `ok` value is true, do nothing and let Jay's Telegram reply confirm the send.
 
 For Voice Memos, the memo recording should upload as the form file. The deployed bridge transcribes audio server-side with `openclaw infer audio transcribe --file <path> --json` before sending the transcript to Jay.
 
