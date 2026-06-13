@@ -2,7 +2,7 @@
 #include 'actions/web'
 #include 'actions/location'
 
-#define name Share with Jay
+#define name Share with OpenClaw
 #define glyph sendMessage
 #define color blue
 #define inputs file, media, url, text, webpage, image, pdf
@@ -26,7 +26,7 @@ if @shouldUpload {
             "file": "${sharedInput}",
             "source": "ios_share_sheet",
             "device_name": "iPhone",
-            "shortcut_name": "Share with Jay",
+            "shortcut_name": "Share with OpenClaw",
             "latitude": "{@latitude}",
             "longitude": "{@longitude}",
             "altitude": "{@altitude}",
@@ -42,7 +42,7 @@ if @shouldUpload {
     if @ok {
         nothing()
     } else {
-        showNotification("{@spoken}", "Jay", false)
+        showNotification("{@spoken}", "OpenClaw", false)
     }
 } else {
     @sharedUrls = getURLs(@sharedInput)
@@ -56,7 +56,7 @@ if @shouldUpload {
                 "message": "Shared via iPhone share sheet: {@firstUrl}",
                 "source": "ios_share_sheet",
                 "device_name": "iPhone",
-                "shortcut_name": "Share with Jay",
+                "shortcut_name": "Share with OpenClaw",
                 "location": {
                     "latitude": "{@latitude}",
                     "longitude": "{@longitude}",
@@ -75,7 +75,7 @@ if @shouldUpload {
         if @ok {
             nothing()
         } else {
-            showNotification("{@spoken}", "Jay", false)
+            showNotification("{@spoken}", "OpenClaw", false)
         }
     } else {
         @sharedText = getText(@sharedInput)
@@ -87,7 +87,7 @@ if @shouldUpload {
                     "message": "Shared via iPhone share sheet: {@sharedText}",
                     "source": "ios_share_sheet",
                     "device_name": "iPhone",
-                    "shortcut_name": "Share with Jay",
+                    "shortcut_name": "Share with OpenClaw",
                     "location": {
                         "latitude": "{@latitude}",
                         "longitude": "{@longitude}",
@@ -106,10 +106,10 @@ if @shouldUpload {
             if @ok {
                 nothing()
             } else {
-                showNotification("{@spoken}", "Jay", false)
+                showNotification("{@spoken}", "OpenClaw", false)
             }
         } else {
-            showNotification("No shareable input captured", "Jay", false)
+            showNotification("No shareable input captured", "OpenClaw", false)
             stop()
         }
     }

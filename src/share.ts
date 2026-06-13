@@ -76,7 +76,7 @@ export function normalizeShareSheetRequest(
     assistant: asOptionalString(body.assistant),
     captured_at: asOptionalString(body.captured_at),
     device_name: asOptionalString(body.device_name) ?? 'iPhone',
-    shortcut_name: asOptionalString(body.shortcut_name) ?? 'Share with Jay',
+    shortcut_name: asOptionalString(body.shortcut_name) ?? 'Share with OpenClaw',
     request_id: asOptionalString(body.request_id) ?? randomUUID(),
     locale: asOptionalString(body.locale),
     location

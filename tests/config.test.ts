@@ -26,7 +26,7 @@ describe('config', () => {
   it('loads defaults for a CLI deployment', () => {
     const config = loadConfig({ SIRI_BRIDGE_TOKEN: '0123456789abcdef01234567' });
     expect(config.port).toBe(8788);
-    expect(config.assistantId).toBe('jay');
+    expect(config.assistantId).toBe('openclaw');
     expect(config.allowedSources.has('siri_watch')).toBe(true);
     expect(config.openclawAdapter).toBe('cli');
     expect(config.openclawDeliverReply).toBe(false);

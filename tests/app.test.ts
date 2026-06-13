@@ -9,7 +9,7 @@ function config(): BridgeConfig {
   return {
     logLevel: 'silent',
     siriBridgeToken: '0123456789abcdef01234567',
-    assistantId: 'jay',
+    assistantId: 'openclaw',
     maxMessageChars: 1200,
     allowedSources: new Set(['siri_watch', 'siri_iphone', 'shortcuts', 'ios_share_sheet']),
     shareUploadDir: join(tmpdir(), `openclaw-siri-share-test-${Date.now()}`),
@@ -37,14 +37,14 @@ describe('app routes', () => {
     const res = await request(createApp(config(), { acceptEvent }))
       .post('/shortcuts/message')
       .set('Authorization', 'Bearer 0123456789abcdef01234567')
-      .send({ message: 'hello Jay', source: 'siri_watch', device_name: 'Apple Watch' });
+      .send({ message: 'hello OpenClaw', source: 'siri_watch', device_name: 'Apple Watch' });
 
     expect(res.status).toBe(202);
-    expect(res.body).toMatchObject({ ok: true, queued: true, id: 'accepted-id', spoken: 'Sent to jay' });
+    expect(res.body).toMatchObject({ ok: true, queued: true, id: 'accepted-id', spoken: 'Sent to openclaw' });
     expect(acceptEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         source: 'siri_watch',
-        raw_text: 'hello Jay',
+        raw_text: 'hello OpenClaw',
         device_name: 'Apple Watch'
       })
     );
@@ -72,7 +72,7 @@ describe('app routes', () => {
       .field('location_json', '{"latitude":33.6,"longitude":-111.9}');
 
     expect(res.status).toBe(202);
-    expect(res.body).toMatchObject({ ok: true, queued: true, id: 'share-id', spoken: 'Shared with jay' });
+    expect(res.body).toMatchObject({ ok: true, queued: true, id: 'share-id', spoken: 'Shared with openclaw' });
     expect(acceptEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         source: 'ios_share_sheet',

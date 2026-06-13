@@ -2,7 +2,7 @@
 #include 'actions/web'
 #include 'actions/location'
 
-#define name Tell Jay
+#define name Talk to OpenClaw
 #define glyph sendMessage
 #define color blue
 
@@ -21,7 +21,7 @@ if @message {
             "message": "{@message}",
             "source": "siri_watch",
             "device_name": "Apple Watch",
-            "shortcut_name": "Tell Jay",
+            "shortcut_name": "Talk to OpenClaw",
             "location": {
                 "latitude": "{@latitude}",
                 "longitude": "{@longitude}",
@@ -40,9 +40,9 @@ if @message {
     if @ok {
         nothing()
     } else {
-        showNotification("{@spoken}", "Jay", false)
+        showNotification("{@spoken}", "OpenClaw", false)
     }
 } else {
-    showNotification("No message captured", "Jay", false)
+    showNotification("No message captured", "OpenClaw", false)
     stop()
 }

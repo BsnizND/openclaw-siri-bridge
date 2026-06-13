@@ -1,15 +1,13 @@
 # openclaw-siri-bridge
 
-Authenticated Apple Shortcuts/Siri webhook bridge for sending dictated messages into OpenClaw.
+Authenticated Apple Shortcuts/Siri webhook bridge for talking to OpenClaw from your iPhone or Apple Watch.
 
-The common use case is an Apple Watch shortcut:
+This repo is built around two user stories:
 
-1. Say `Hey Siri, Tell Jay`.
-2. Dictate a quick message.
-3. The Shortcut POSTs the transcript to this bridge.
-4. The bridge queues the event and delivers it to OpenClaw in the background.
+1. **Talk to OpenClaw from your watch or phone via Siri.** Say `Hey Siri, Talk to OpenClaw`, dictate a message, and get OpenClaw's response back in your Telegram chat.
+2. **Share anything from your phone to OpenClaw.** Share a voice memo, link, tweet, photo, PDF, file, selected text, or webpage to OpenClaw and receive the response in Telegram.
 
-The bridge is assistant-agnostic. `jay` is only the default example assistant id.
+The bridge is assistant-agnostic. Configure the OpenClaw session and Telegram reply route for your own deployment.
 
 ## Features
 
@@ -21,7 +19,7 @@ The bridge is assistant-agnostic. `jay` is only the default example assistant id
 - Fast `202 Accepted` response for Siri/Shortcuts.
 - Durable JSONL queue for pending work, with delivered/failed outcomes archived separately.
 - Background delivery to OpenClaw through CLI or HTTP ingest.
-- Optional OpenClaw reply delivery back to a messaging channel, such as an existing Telegram direct session.
+- Optional OpenClaw reply delivery back to a messaging channel, such as an existing Telegram chat.
 - Optional structured location context, including latitude, longitude, altitude, accuracy, and a map URL.
 - Optional voice memo metadata/transcript context for Shortcuts that can provide an audio transcript.
 - Optional server-side audio transcription for shared Voice Memos/audio files.
@@ -32,7 +30,7 @@ The bridge is assistant-agnostic. `jay` is only the default example assistant id
 - Replacing Siri, Apple Shortcuts, or OpenClaw.
 - Public exposure of OpenClaw admin/runtime surfaces.
 - Creating or changing OpenClaw worker-agent topology.
-- One-shot Siri phrases like `Hey Siri, Tell Jay remember dog food`.
+- One-shot Siri phrases like `Hey Siri, Talk to OpenClaw remember dog food`.
 
 For arbitrary text, Siri/Shortcuts is most reliable as a two-step interaction: invoke the shortcut, then dictate.
 
@@ -83,7 +81,7 @@ Body:
   "message": "Remind me to send the draft tomorrow",
   "source": "siri_watch",
   "device_name": "Apple Watch",
-  "shortcut_name": "Tell Jay",
+  "shortcut_name": "Talk to OpenClaw",
   "captured_at": "2026-06-13T16:00:00.000Z",
   "location": {
     "latitude": 33.6001,
@@ -120,7 +118,7 @@ For voice memo workflows, send a transcript as either the main `message` or as `
 
 ```json
 {
-  "message": "Send Jay this voice memo transcript",
+  "message": "Shared via iPhone voice memo: <transcript>",
   "source": "siri_iphone",
   "voice_memo": {
     "transcript": "Full transcript text here",
@@ -138,7 +136,7 @@ Success:
   "ok": true,
   "queued": true,
   "id": "request-id",
-  "spoken": "Sent to jay"
+  "spoken": "Sent to openclaw"
 }
 ```
 
@@ -175,11 +173,12 @@ Important settings:
 
 See [docs/shortcut-setup.md](docs/shortcut-setup.md).
 
+If you are using Codex or another agentic coding partner to generate the
+Shortcut files for you, see [docs/agent-shortcut-build.md](docs/agent-shortcut-build.md).
+
 ## Deployment
 
 See [docs/deployment.md](docs/deployment.md).
-
-Brian's live `snizserver` deployment notes are in [docs/snizserver-deployment.md](docs/snizserver-deployment.md).
 
 ## Security
 

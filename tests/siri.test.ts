@@ -4,7 +4,7 @@ import type { BridgeConfig } from '../src/types.js';
 
 function config(): BridgeConfig {
   return {
-    assistantId: 'jay',
+    assistantId: 'openclaw',
     maxMessageChars: 120,
     allowedSources: new Set(['siri_watch', 'siri_iphone', 'shortcuts'])
   } as BridgeConfig;
@@ -17,7 +17,7 @@ describe('Siri shortcut normalization', () => {
       source: 'siri_watch',
       captured_at: '2026-06-13T16:00:00.000Z',
       device_name: 'Apple Watch',
-      shortcut_name: 'Tell Jay',
+      shortcut_name: 'Talk to OpenClaw',
       location: {
         latitude: '33.6001',
         longitude: '-111.9002',
@@ -34,11 +34,11 @@ describe('Siri shortcut normalization', () => {
 
     expect(event).toMatchObject({
       source: 'siri_watch',
-      assistant: 'jay',
+      assistant: 'openclaw',
       raw_text: 'remind me about the passport',
       captured_at: '2026-06-13T16:00:00.000Z',
       device_name: 'Apple Watch',
-      shortcut_name: 'Tell Jay',
+      shortcut_name: 'Talk to OpenClaw',
       location: {
         latitude: 33.6001,
         longitude: -111.9002,

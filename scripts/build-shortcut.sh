@@ -12,12 +12,12 @@ if [[ -z "${SIRI_BRIDGE_TOKEN:-}" ]]; then
 fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SHORTCUT_NAME="${SHORTCUT_NAME:-Tell Jay}"
+SHORTCUT_NAME="${SHORTCUT_NAME:-Talk to OpenClaw}"
 OUTPUT_DIR="${OUTPUT_DIR:-$ROOT_DIR/artifacts/shortcuts}"
 SIGN_MODE="${SHORTCUT_SIGN_MODE:-contacts}"
 CHERRI_VERSION="${CHERRI_VERSION:-v2.3.0}"
 CHERRI_BIN="${CHERRI_BIN:-}"
-SOURCE_TEMPLATE="${SOURCE_TEMPLATE:-$ROOT_DIR/examples/tell-jay.cherri.template}"
+SOURCE_TEMPLATE="${SOURCE_TEMPLATE:-$ROOT_DIR/examples/talk-to-openclaw.cherri.template}"
 
 mkdir -p "$OUTPUT_DIR"
 

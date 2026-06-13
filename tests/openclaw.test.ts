@@ -8,12 +8,12 @@ import type { BridgeConfig, NormalizedSiriEvent } from '../src/types.js';
 function event(text = 'remember dog food'): NormalizedSiriEvent {
   return {
     source: 'siri_watch',
-    assistant: 'jay',
+    assistant: 'openclaw',
     raw_text: text,
     captured_at: new Date().toISOString(),
     request_id: 'test-request-id',
     device_name: 'Apple Watch',
-    shortcut_name: 'Tell Jay'
+    shortcut_name: 'Talk to OpenClaw'
   };
 }
 
@@ -54,8 +54,8 @@ describe('OpenClaw delivery', () => {
         openclawAdapter: 'cli',
         openclawCliBin: '/missing/openclaw',
         openclawCliDrainTimeoutMs: 120000,
-        assistantId: 'jay',
-        openclawSessionKey: 'agent:jay:main',
+        assistantId: 'openclaw',
+        openclawSessionKey: 'agent:openclaw:main',
         queuePath,
         queueArchivePath: archivePath,
         queueMaxAttempts: 3
@@ -88,8 +88,8 @@ describe('OpenClaw delivery', () => {
       openclawCliDrainTimeoutMs: 1000,
       openclawCliThinking: 'minimal',
       openclawWorkdir: dir,
-      assistantId: 'jay',
-      openclawSessionKey: 'agent:jay:main',
+      assistantId: 'openclaw',
+      openclawSessionKey: 'agent:openclaw:main',
       queuePath,
       queueArchivePath: archivePath,
       queueMaxAttempts: 3
@@ -107,7 +107,7 @@ describe('OpenClaw delivery', () => {
     const args = await readFile(argsPath, 'utf8');
     const cwd = await readFile(cwdPath, 'utf8');
     expect(args).toContain('--message');
-    expect(args).toContain('Voice message from Siri/Shortcuts for jay');
+    expect(args).toContain('Voice message from Siri/Shortcuts for openclaw');
     expect(args).toContain('drain this message');
     expect(args).toContain('--thinking');
     expect(args).toContain('minimal');
@@ -135,8 +135,8 @@ describe('OpenClaw delivery', () => {
       openclawReplyTo: 'telegram:1234',
       openclawMessageStyle: 'compact',
       siriMessagePrefix: 'Sent via Apple Watch voice message:',
-      assistantId: 'jay',
-      openclawSessionKey: 'agent:jay:telegram:default:direct:brian',
+      assistantId: 'openclaw',
+      openclawSessionKey: 'agent:openclaw:telegram:default:direct:user',
       queuePath,
       queueArchivePath: archivePath,
       queueMaxAttempts: 3
@@ -148,7 +148,7 @@ describe('OpenClaw delivery', () => {
     expect(drain).toEqual({ delivered: 1, failed: 0, pending: 0, archived: 1 });
     const args = await readFile(argsPath, 'utf8');
     expect(args).toContain('--session-key');
-    expect(args).toContain('agent:jay:telegram:default:direct:brian');
+    expect(args).toContain('agent:openclaw:telegram:default:direct:user');
     expect(args).toContain('--message');
     expect(args).toContain('Sent via Apple Watch voice message: please find a burrito place nearby');
     expect(args).toContain('Shared item:');
@@ -180,8 +180,8 @@ describe('OpenClaw delivery', () => {
       openclawAdapter: 'cli',
       openclawCliBin: binPath,
       openclawCliDrainTimeoutMs: 1000,
-      assistantId: 'jay',
-      openclawSessionKey: 'agent:jay:main',
+      assistantId: 'openclaw',
+      openclawSessionKey: 'agent:openclaw:main',
       queuePath,
       queueArchivePath: archivePath,
       queueMaxAttempts: 1

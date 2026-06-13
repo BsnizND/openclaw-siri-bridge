@@ -6,7 +6,7 @@ Do not commit generated Shortcut artifacts. They contain the bearer token.
 
 ## Generate with Cherri
 
-The repo includes a token-free Cherri template at `examples/tell-jay.cherri.template` and a helper script that generates a signed Shortcut locally.
+The repo includes token-free Cherri templates and a helper script that generates signed Shortcuts locally.
 
 On macOS:
 
@@ -16,14 +16,15 @@ export SIRI_BRIDGE_TOKEN='your-long-random-token'
 ./scripts/build-shortcut.sh
 ```
 
-The script writes:
+By default the script writes:
 
 ```text
-artifacts/shortcuts/Tell Jay.shortcut
-artifacts/shortcuts/Tell Jay.cherri
+artifacts/shortcuts/Talk to OpenClaw.shortcut
+artifacts/shortcuts/Talk to OpenClaw.cherri
 ```
 
-`Tell Jay.cherri` is the rendered source and contains the bearer token. `Tell Jay.shortcut` is signed and ready to import. Both paths are ignored by git.
+The rendered `.cherri` source contains the bearer token. The `.shortcut` file
+is signed and ready to import. Both paths are ignored by git.
 
 By default, the script downloads the Cherri release binary for the local Mac architecture. To use an existing Cherri binary:
 
@@ -34,7 +35,7 @@ CHERRI_BIN=/path/to/cherri ./scripts/build-shortcut.sh
 Optional settings:
 
 ```bash
-SHORTCUT_NAME='Tell Jay' \
+SHORTCUT_NAME='Talk to OpenClaw' \
 SHORTCUT_SIGN_MODE='contacts' \
 CHERRI_VERSION='v2.3.0' \
 OUTPUT_DIR="$PWD/artifacts/shortcuts" \
@@ -46,12 +47,12 @@ To generate the share-sheet Shortcut:
 ```bash
 export SIRI_BRIDGE_URL='https://your-public-bridge.example.com/shortcuts/message'
 export SIRI_BRIDGE_TOKEN='your-long-random-token'
-SHORTCUT_NAME='Share with Jay' \
-SOURCE_TEMPLATE="$PWD/examples/share-with-jay.cherri.template" \
+SHORTCUT_NAME='Share with OpenClaw' \
+SOURCE_TEMPLATE="$PWD/examples/share-with-openclaw.cherri.template" \
 ./scripts/build-shortcut.sh
 ```
 
-`Share with Jay` handles both common share-sheet paths. For files, audio,
+`Share with OpenClaw` handles both common share-sheet paths. For files, audio,
 images, PDFs, and Voice Memos, it sends multipart form data to
 `/shortcuts/share`. For links, tweets, webpages, and plain text, it sends JSON
 to `/shortcuts/message` and does not include a multipart `file` field. That
@@ -76,11 +77,9 @@ After import, enable `Show on Apple Watch` in the Shortcut details.
 
 The first time the Shortcut runs on iPhone or Apple Watch, iOS may ask for Location permission. Choose `Always Allow` or the equivalent persistent permission if you want location included every time. If Location Services are unavailable, the generated Shortcut should fail on-device instead of sending an ungrounded message.
 
-## Manual Shortcut actions
-
 ## Shortcut actions
 
-Name the shortcut something Siri can hear reliably, for example `Tell Jay`.
+Name the shortcut something Siri can hear reliably, for example `Talk to OpenClaw`.
 
 1. Add `Dictate Text`.
 2. Add `Set Variable`; name it `message`.
@@ -90,7 +89,7 @@ Name the shortcut something Siri can hear reliably, for example `Tell Jay`.
    - `message`: `message`
    - `source`: `siri_watch`
    - `device_name`: `Apple Watch`
-   - `shortcut_name`: `Tell Jay`
+   - `shortcut_name`: `Talk to OpenClaw`
    - `captured_at`: current date formatted as ISO 8601
 6. Add `Get Current Location`.
 7. Add `Get Details of Location` for:
@@ -111,7 +110,7 @@ Name the shortcut something Siri can hear reliably, for example `Tell Jay`.
    - `Content-Type`: `application/json`
 14. Set Request Body to `JSON` and pass the dictionary.
 15. Parse the response dictionary. If `ok` is false, show a notification using
-    the `spoken` value. If `ok` is true, do nothing and let Jay's Telegram
+    the `spoken` value. If `ok` is true, do nothing and let OpenClaw's Telegram
     reply be the confirmation.
 
 ## Voice memo workflows
@@ -120,17 +119,17 @@ Apple Voice Memos can show and copy transcripts on current iOS versions, and Sho
 
 The best bridge workflow is now the share sheet:
 
-1. Import the generated `Share with Jay.shortcut`.
+1. Import the generated `Share with OpenClaw.shortcut`.
 2. Open the Shortcut details and confirm `Show in Share Sheet` is enabled.
-3. In Voice Memos, choose a recording, tap Share, and run `Share with Jay`.
+3. In Voice Memos, choose a recording, tap Share, and run `Share with OpenClaw`.
 4. The Shortcut uploads the memo as a multipart `file` field to `/shortcuts/share`.
-5. If server-side transcription is enabled, the bridge transcribes the audio on the OpenClaw host and includes the transcript in the message to Jay.
+5. If server-side transcription is enabled, the bridge transcribes the audio on the OpenClaw host and includes the transcript in the message to OpenClaw.
 
 Recommended options:
 
-- Share-sheet workflow: in Voice Memos, share a recording to `Share with Jay`. The shortcut uploads the audio file, gets current location, and lets the bridge transcribe it server-side.
-- Link/text workflow: for tweets, webpages, URLs, and selected text, share to `Share with Jay`. The shortcut sends a JSON message with current location and does not upload a file.
-- Select-file workflow: run `Hey Siri, Send voice memo to Jay`, have the shortcut ask you to choose an audio file, run `Transcribe Audio`, then POST the transcript.
+- Share-sheet workflow: in Voice Memos, share a recording to `Share with OpenClaw`. The shortcut uploads the audio file, gets current location, and lets the bridge transcribe it server-side.
+- Link/text workflow: for tweets, webpages, URLs, and selected text, share to `Share with OpenClaw`. The shortcut sends a JSON message with current location and does not upload a file.
+- Select-file workflow: run `Hey Siri, Send voice memo to OpenClaw`, have the shortcut ask you to choose an audio file, run `Transcribe Audio`, then POST the transcript.
 - "Most recent Voice Memo" workflow: only use this if your device exposes a Voice Memos action that can return the latest recording as a file. If it does, sort recordings by creation date, take the newest item, transcribe it, and POST it. If that action is not present, the share-sheet workflow is the safer public setup.
 
 Voice memo JSON shape:
@@ -140,7 +139,7 @@ Voice memo JSON shape:
   "message": "Sent via iPhone voice memo: <transcript>",
   "source": "siri_iphone",
   "device_name": "iPhone",
-  "shortcut_name": "Send Voice Memo to Jay",
+  "shortcut_name": "Send Voice Memo to OpenClaw",
   "location": {
     "latitude": 33.6001,
     "longitude": -111.9002,
@@ -160,7 +159,7 @@ In the Shortcut details on iPhone, turn on `Show on Apple Watch`.
 
 You can then run it from:
 
-- Siri: `Hey Siri, Tell Jay`;
+- Siri: `Hey Siri, Talk to OpenClaw`;
 - the Shortcuts app on Apple Watch;
 - a watch-face complication;
 - the Action Button on Apple Watch Ultra models.
@@ -169,7 +168,7 @@ You can then run it from:
 
 Siri generally does not pass arbitrary free-form text after the shortcut name as one clean utterance. The reliable interaction is:
 
-1. Say `Hey Siri, Tell Jay`.
+1. Say `Hey Siri, Talk to OpenClaw`.
 2. Wait for dictation.
 3. Speak the message.
 4. Let the shortcut POST the transcript.
@@ -184,13 +183,3 @@ Apple supports sharing shortcuts through iCloud links or as `.shortcut` files, a
 4. Let iCloud Sync copy it to the watch.
 
 The macOS `shortcuts` command can run, view, and sign shortcut files, but it does not provide a supported command to generate and install a new multi-action shortcut directly onto an iPhone. If you create a shareable shortcut template, the bridge repo can host the signed `.shortcut` file and users can import it with Apple's normal approval flow.
-
-## Brian's live route
-
-Brian's current deployment URL is:
-
-```text
-https://snizserver.barred-komodo.ts.net:8443/shortcuts/message
-```
-
-The bearer token is intentionally not stored in this repository.

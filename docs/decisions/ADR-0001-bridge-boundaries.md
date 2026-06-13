@@ -20,4 +20,5 @@ Apple Shortcuts and Siri are good at capturing quick dictated text, especially f
 
 ## Consequences
 
-The public surface stays tiny and reusable. Deployments can use the same pattern for Jay or any other OpenClaw assistant by changing configuration.
+The public surface stays tiny and reusable. Deployments choose their own
+OpenClaw assistant, session key, and reply channel through configuration.
