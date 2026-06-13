@@ -12,6 +12,7 @@ import { isAudioMimeType, transcribeAudioFile } from './transcribe.js';
 
 export interface AppDependencies {
   acceptEvent?: (event: NormalizedSiriEvent) => Promise<DeliveryResult>;
+  afterAccepted?: (event: NormalizedSiriEvent) => void;
 }
 
 function isAuthorized(config: BridgeConfig, header: string | undefined): boolean {
@@ -28,6 +29,7 @@ export function createApp(config: BridgeConfig, deps: AppDependencies = {}) {
   const app = express();
   const logger = pino({ level: config.logLevel });
   const acceptEvent = deps.acceptEvent ?? ((event) => acceptForOpenClaw(config, event));
+  const afterAccepted = deps.afterAccepted;
   mkdirSync(config.shareUploadDir, { recursive: true });
   const upload = multer({
     storage: multer.diskStorage({
@@ -75,6 +77,7 @@ export function createApp(config: BridgeConfig, deps: AppDependencies = {}) {
       const event = normalizeShortcutMessage(config, req.body as ShortcutMessageRequest);
       const result = await acceptEvent(event);
       logger.info({ requestId: event.request_id, source: event.source, assistant: event.assistant }, 'message accepted');
+      afterAccepted?.(event);
       res.status(202).json({
         ok: true,
         queued: Boolean(result.queued),
@@ -117,6 +120,7 @@ export function createApp(config: BridgeConfig, deps: AppDependencies = {}) {
           },
           'share accepted'
         );
+        afterAccepted?.(event);
         res.status(202).json({
           ok: true,
           queued: Boolean(result.queued),

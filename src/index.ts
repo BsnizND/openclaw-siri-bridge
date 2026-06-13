@@ -3,17 +3,35 @@ import { loadConfig } from './config.js';
 import { drainOpenClawQueue } from './openclaw.js';
 
 const config = loadConfig();
-const app = createApp(config);
 let draining = false;
+let drainStartedAt = 0;
 
-async function drainOnce() {
-  if (draining) return;
+const staleDrainAfterMs = Math.max(
+  config.openclawCliDrainTimeoutMs + 10_000,
+  config.queueDrainIntervalMs > 0 ? config.queueDrainIntervalMs * 2 : 0,
+  60_000
+);
+
+function scheduleDrain(reason: string) {
+  const timeout = setTimeout(() => {
+    void drainOnce(reason);
+  }, 0);
+  timeout.unref();
+}
+
+async function drainOnce(reason: string) {
+  if (draining) {
+    const ageMs = Date.now() - drainStartedAt;
+    if (ageMs <= staleDrainAfterMs) return;
+    console.error(`openclaw queue drain appears stuck after ${ageMs}ms; starting recovery drain reason=${reason}`);
+  }
   draining = true;
+  drainStartedAt = Date.now();
   try {
     const result = await drainOpenClawQueue(config);
     if (result.delivered > 0 || result.failed > 0 || result.archived > 0) {
       console.log(
-        `openclaw queue drain delivered=${result.delivered} failed=${result.failed} archived=${result.archived} pending=${result.pending}`
+        `openclaw queue drain delivered=${result.delivered} failed=${result.failed} archived=${result.archived} pending=${result.pending} reason=${reason}`
       );
     }
   } catch (error) {
@@ -21,15 +39,22 @@ async function drainOnce() {
     console.error(`openclaw queue drain failed: ${message}`);
   } finally {
     draining = false;
+    drainStartedAt = 0;
   }
 }
+
+const app = createApp(config, {
+  afterAccepted: (event) => {
+    scheduleDrain(`accepted:${event.request_id}`);
+  }
+});
 
 app.listen(config.port, config.host, () => {
   console.log(`openclaw-siri-bridge listening on http://${config.host}:${config.port}`);
   if (config.queueDrainIntervalMs > 0) {
-    void drainOnce();
+    scheduleDrain('startup');
     setInterval(() => {
-      void drainOnce();
+      void drainOnce('interval');
     }, config.queueDrainIntervalMs);
   }
 });

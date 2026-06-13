@@ -34,7 +34,8 @@ describe('app routes', () => {
 
   it('accepts and normalizes authorized shortcut messages', async () => {
     const acceptEvent = vi.fn().mockResolvedValue({ ok: true, queued: true, id: 'accepted-id' });
-    const res = await request(createApp(config(), { acceptEvent }))
+    const afterAccepted = vi.fn();
+    const res = await request(createApp(config(), { acceptEvent, afterAccepted }))
       .post('/shortcuts/message')
       .set('Authorization', 'Bearer 0123456789abcdef01234567')
       .send({ message: 'hello OpenClaw', source: 'siri_watch', device_name: 'Apple Watch' });
@@ -46,6 +47,12 @@ describe('app routes', () => {
         source: 'siri_watch',
         raw_text: 'hello OpenClaw',
         device_name: 'Apple Watch'
+      })
+    );
+    expect(afterAccepted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request_id: expect.any(String),
+        raw_text: 'hello OpenClaw'
       })
     );
   });
@@ -63,7 +70,8 @@ describe('app routes', () => {
 
   it('accepts share sheet text and URL payloads', async () => {
     const acceptEvent = vi.fn().mockResolvedValue({ ok: true, queued: true, id: 'share-id' });
-    const res = await request(createApp(config(), { acceptEvent }))
+    const afterAccepted = vi.fn();
+    const res = await request(createApp(config(), { acceptEvent, afterAccepted }))
       .post('/shortcuts/share')
       .set('Authorization', 'Bearer 0123456789abcdef01234567')
       .field('shared_text', 'This is worth remembering')
@@ -84,6 +92,12 @@ describe('app routes', () => {
           url: 'https://example.com/article',
           title: 'Example Article'
         })
+      })
+    );
+    expect(afterAccepted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: 'ios_share_sheet',
+        raw_text: 'Shared from iOS share sheet: This is worth remembering'
       })
     );
   });
