@@ -12,8 +12,7 @@
 
 @sharedInput = ShortcutInput
 @inputType = typeOf(@sharedInput)
-@imageInputs = getImages(@sharedInput)
-@imageCount = count(@imageInputs)
+@isImage = containsText(@inputType, "Image|Photo", false)
 @shouldUpload = containsText(@inputType, "File|Media|PDF|Audio", false)
 @currentLocation = getCurrentLocation()
 @latitude = getLocationDetail(@currentLocation, 'Latitude')
@@ -21,7 +20,8 @@
 @altitude = getLocationDetail(@currentLocation, 'Altitude')
 @mapsUrl = getMapsLink(@currentLocation)
 
-if @imageCount {
+if @isImage {
+    @imageInputs = getImages(@sharedInput)
     @firstImage = getFirstItem(@imageInputs)
     @imageName = getImageDetail(@firstImage, 'Name')
     @response = formRequest(
