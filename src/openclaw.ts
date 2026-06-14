@@ -50,8 +50,11 @@ function formatSharedItem(event: NormalizedSiriEvent): string[] {
 }
 
 function buildAssistantMessage(event: NormalizedSiriEvent): string {
+  const heading = event.source === 'ios_share_sheet'
+    ? `iOS share sheet item for ${event.assistant}:`
+    : `Siri voice message for ${event.assistant}:`;
   return [
-    `Voice message from Siri/Shortcuts for ${event.assistant}:`,
+    heading,
     '',
     event.raw_text,
     '',
@@ -71,9 +74,24 @@ function buildAssistantMessage(event: NormalizedSiriEvent): string {
     .join('\n');
 }
 
+function compactPrefix(config: BridgeConfig, event: NormalizedSiriEvent): string | undefined {
+  if (event.source === 'ios_share_sheet') return 'Sent via iOS share sheet:';
+  return config.siriMessagePrefix?.trim() || 'Sent via Siri voice message:';
+}
+
+function compactText(event: NormalizedSiriEvent): string {
+  if (event.source !== 'ios_share_sheet') return event.raw_text;
+  return event.raw_text
+    .replace(/^Shared from iOS share sheet:\s*/i, '')
+    .replace(/^Shared URL from iOS share sheet:\s*/i, '')
+    .replace(/^Shared file from iOS share sheet:\s*/i, '')
+    .replace(/^Shared audio from iOS share sheet\.\s*/i, '');
+}
+
 function buildCompactMessage(config: BridgeConfig, event: NormalizedSiriEvent): string {
-  const prefix = config.siriMessagePrefix?.trim();
-  const message = prefix ? `${prefix} ${event.raw_text}` : event.raw_text;
+  const prefix = compactPrefix(config, event);
+  const text = compactText(event);
+  const message = prefix ? `${prefix} ${text}` : text;
   const context = [...formatSharedItem(event), ...formatLocation(event), ...formatVoiceMemo(event)];
   return context.length ? [message, '', ...context].join('\n') : message;
 }

@@ -54,13 +54,13 @@ describe('config', () => {
       OPENCLAW_REPLY_CHANNEL: 'telegram',
       OPENCLAW_REPLY_TO: 'telegram:1234',
       OPENCLAW_MESSAGE_STYLE: 'compact',
-      SIRI_MESSAGE_PREFIX: 'Sent via Apple Watch voice message:'
+      SIRI_MESSAGE_PREFIX: 'Sent via Siri voice message:'
     });
     expect(config.openclawDeliverReply).toBe(true);
     expect(config.openclawReplyChannel).toBe('telegram');
     expect(config.openclawReplyTo).toBe('telegram:1234');
     expect(config.openclawMessageStyle).toBe('compact');
-    expect(config.siriMessagePrefix).toBe('Sent via Apple Watch voice message:');
+    expect(config.siriMessagePrefix).toBe('Sent via Siri voice message:');
   });
 
   it('loads share upload and audio transcription settings', () => {

@@ -187,7 +187,7 @@ Important settings:
 - `OPENCLAW_DELIVER_REPLY`: set to `true` when OpenClaw should deliver the assistant reply back to a channel.
 - `OPENCLAW_REPLY_CHANNEL` / `OPENCLAW_REPLY_TO`: reply route for `OPENCLAW_DELIVER_REPLY`.
 - `OPENCLAW_MESSAGE_STYLE`: `detailed` metadata payload or `compact` user-facing transcript.
-- `SIRI_MESSAGE_PREFIX`: optional prefix for compact messages, for example `Sent via Apple Watch voice message:`.
+- `SIRI_MESSAGE_PREFIX`: optional prefix for compact voice messages, for example `Sent via Siri voice message:`.
 - `QUEUE_PATH`: JSONL queue path.
 - `QUEUE_ARCHIVE_PATH`: JSONL archive path for delivered/failed queue records. Defaults to `QUEUE_PATH + ".archive"`.
 - `MAX_MESSAGE_CHARS`: maximum accepted dictated text length.

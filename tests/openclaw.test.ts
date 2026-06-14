@@ -42,6 +42,23 @@ function eventWithLocationAndMemo(text = 'find burritos near me'): NormalizedSir
   };
 }
 
+function shareEvent(text = 'Shared from iOS share sheet: screenshot OCR text'): NormalizedSiriEvent {
+  return {
+    source: 'ios_share_sheet',
+    assistant: 'openclaw',
+    raw_text: text,
+    captured_at: new Date().toISOString(),
+    request_id: 'share-request-id',
+    device_name: 'iPhone',
+    shortcut_name: 'Share with OpenClaw',
+    shared_item: {
+      kind: 'text',
+      text: 'screenshot OCR text',
+      title: 'IMG_8055'
+    }
+  };
+}
+
 describe('OpenClaw delivery', () => {
   it('queues inbound Siri events immediately instead of blocking the request', async () => {
     const dir = join(tmpdir(), `openclaw-siri-test-${Date.now()}`);
@@ -107,7 +124,7 @@ describe('OpenClaw delivery', () => {
     const args = await readFile(argsPath, 'utf8');
     const cwd = await readFile(cwdPath, 'utf8');
     expect(args).toContain('--message');
-    expect(args).toContain('Voice message from Siri/Shortcuts for openclaw');
+    expect(args).toContain('Siri voice message for openclaw');
     expect(args).toContain('drain this message');
     expect(args).toContain('--thinking');
     expect(args).toContain('minimal');
@@ -134,7 +151,6 @@ describe('OpenClaw delivery', () => {
       openclawReplyChannel: 'telegram',
       openclawReplyTo: 'telegram:1234',
       openclawMessageStyle: 'compact',
-      siriMessagePrefix: 'Sent via Apple Watch voice message:',
       assistantId: 'openclaw',
       openclawSessionKey: 'agent:openclaw:telegram:default:direct:user',
       queuePath,
@@ -150,7 +166,7 @@ describe('OpenClaw delivery', () => {
     expect(args).toContain('--session-key');
     expect(args).toContain('agent:openclaw:telegram:default:direct:user');
     expect(args).toContain('--message');
-    expect(args).toContain('Sent via Apple Watch voice message: please find a burrito place nearby');
+    expect(args).toContain('Sent via Siri voice message: please find a burrito place nearby');
     expect(args).toContain('Shared item:');
     expect(args).toContain('Kind: audio');
     expect(args).toContain('File path: /tmp/Latest memo.m4a');
@@ -164,6 +180,42 @@ describe('OpenClaw delivery', () => {
     expect(args).toContain('telegram');
     expect(args).toContain('--reply-to');
     expect(args).toContain('telegram:1234');
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('uses the iOS share sheet prefix for compact shared items', async () => {
+    const dir = join(tmpdir(), `openclaw-siri-share-prefix-test-${Date.now()}`);
+    await mkdir(dir, { recursive: true });
+    const queuePath = join(dir, 'queue.jsonl');
+    const archivePath = join(dir, 'queue.archive.jsonl');
+    const binPath = join(dir, 'fake-openclaw');
+    const argsPath = join(dir, 'args.txt');
+    await writeFile(binPath, `#!/bin/sh\nprintf '%s\\n' "$@" > '${argsPath}'\n`, 'utf8');
+    await chmod(binPath, 0o755);
+
+    const config = {
+      openclawAdapter: 'cli',
+      openclawCliBin: binPath,
+      openclawCliDrainTimeoutMs: 1000,
+      openclawMessageStyle: 'compact',
+      siriMessagePrefix: 'Wrong voice prefix:',
+      assistantId: 'openclaw',
+      openclawSessionKey: 'agent:openclaw:telegram:default:direct:user',
+      queuePath,
+      queueArchivePath: archivePath,
+      queueMaxAttempts: 3
+    } as BridgeConfig;
+
+    await acceptForOpenClaw(config, shareEvent());
+    const drain = await drainOpenClawQueue(config);
+
+    expect(drain).toEqual({ delivered: 1, failed: 0, pending: 0, archived: 1 });
+    const args = await readFile(argsPath, 'utf8');
+    expect(args).toContain('Sent via iOS share sheet: screenshot OCR text');
+    expect(args).not.toContain('Wrong voice prefix:');
+    expect(args).not.toContain('Sent via iOS share sheet: Shared from iOS share sheet:');
+    expect(args).toContain('Shared item:');
+    expect(args).toContain('Title: IMG_8055');
     await rm(dir, { recursive: true, force: true });
   });
 

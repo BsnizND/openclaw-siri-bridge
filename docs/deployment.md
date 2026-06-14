@@ -53,7 +53,7 @@ OPENCLAW_DELIVER_REPLY=true
 OPENCLAW_REPLY_CHANNEL=telegram
 OPENCLAW_REPLY_TO=telegram:1234567890
 OPENCLAW_MESSAGE_STYLE=compact
-SIRI_MESSAGE_PREFIX=Sent via Apple Watch voice message:
+SIRI_MESSAGE_PREFIX=Sent via Siri voice message:
 ```
 
 That mode does not send a Telegram message as the human user. It injects the
