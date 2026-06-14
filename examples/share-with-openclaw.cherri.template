@@ -24,7 +24,7 @@
 if @imageCount {
     @firstImage = getFirstItem(@imageInputs)
     @imageName = getImageDetail(@firstImage, 'Name')
-    @imageText = getText(@firstImage)
+    @imageText = extractImageText(@firstImage)
     @response = formRequest(
         "__SIRI_BRIDGE_SHARE_URL__",
         "POST",
