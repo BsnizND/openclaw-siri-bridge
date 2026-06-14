@@ -28,7 +28,7 @@ if @imageCount {
         "__SIRI_BRIDGE_SHARE_URL__",
         "POST",
         {
-            "file": "${firstImage}",
+            "file": "{@firstImage}",
             "shared_title": "{@imageName}",
             "source": "ios_share_sheet",
             "device_name": "iPhone",
@@ -55,7 +55,7 @@ if @imageCount {
         "__SIRI_BRIDGE_SHARE_URL__",
         "POST",
         {
-            "file": "${sharedInput}",
+            "file": "{@sharedInput}",
             "source": "ios_share_sheet",
             "device_name": "iPhone",
             "shortcut_name": "Share with OpenClaw",

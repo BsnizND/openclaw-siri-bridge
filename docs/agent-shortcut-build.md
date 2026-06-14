@@ -78,6 +78,13 @@ files are useful for debugging but contain secrets.
 - stay silent on success;
 - show a notification only on error.
 
+For image and file uploads, inspect the compiled Shortcut before handoff. In the
+generated plist, each Form request to `/shortcuts/share` should have
+`WFHTTPBodyType` set to `Form`, no explicit `Content-Type` header, and a `file`
+field whose value is only the Shortcuts variable token, not a text value with a
+literal `$` prefix. A bad compiled value usually means the template used
+`${variable}` instead of `{@variable}` inside the Form dictionary.
+
 ## Install Handoff
 
 The user must import the shortcuts on iPhone. Send or place the generated
