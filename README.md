@@ -131,7 +131,7 @@ Form fields:
 - `latitude`, `longitude`, `altitude`, `maps_url`: optional plain form-field alternative to `location_json`.
 - `source`: defaults to `ios_share_sheet`.
 
-When `AUDIO_TRANSCRIBE_ENABLED=true`, audio uploads are transcribed server-side before the event is queued for OpenClaw. The generated share-sheet Shortcut sends screenshots/images through the JSON Base64 path and includes on-device OCR text when Shortcuts can extract it.
+When `AUDIO_TRANSCRIBE_ENABLED=true`, audio uploads are transcribed server-side before the event is queued for OpenClaw. The generated share-sheet Shortcut resizes screenshots/images, converts them to JPEG, and sends them as multipart `file` uploads so the assistant can inspect the image server-side.
 
 For voice memo workflows, send a transcript as either the main `message` or as `voice_memo.transcript`:
 

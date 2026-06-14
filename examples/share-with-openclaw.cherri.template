@@ -2,7 +2,6 @@
 #include 'actions/web'
 #include 'actions/location'
 #include 'actions/images'
-#include 'actions/crypto'
 
 #define name Share with OpenClaw
 #define glyph sendMessage
@@ -25,30 +24,24 @@
 if @imageCount {
     @firstImage = getFirstItem(@imageInputs)
     @imageName = getImageDetail(@firstImage, 'Name')
-    @imageText = getTextFromImage(@firstImage)
-    @pngImage = convertImage(@firstImage, "PNG")
-    @imageBase64 = base64Encode(@pngImage)
-    @response = jsonRequest(
+    @resizedImage = resizeImageByLongestEdge(@firstImage, "1600")
+    @jpegImage = convertToJPEG(@resizedImage, 70, false)
+    @response = formRequest(
         "__SIRI_BRIDGE_SHARE_URL__",
         "POST",
         {
-            "image_base64": "{@imageBase64}",
-            "filename": "{@imageName}",
-            "mime_type": "image/png",
-            "shared_text": "{@imageText}",
+            "file": "${jpegImage}",
+            "shared_title": "{@imageName}",
             "source": "ios_share_sheet",
             "device_name": "iPhone",
             "shortcut_name": "Share with OpenClaw",
-            "location": {
-                "latitude": "{@latitude}",
-                "longitude": "{@longitude}",
-                "altitude": "{@altitude}",
-                "maps_url": "{@mapsUrl}"
-            }
+            "latitude": "{@latitude}",
+            "longitude": "{@longitude}",
+            "altitude": "{@altitude}",
+            "maps_url": "{@mapsUrl}"
         },
         {
-            "Authorization": "Bearer __SIRI_BRIDGE_TOKEN__",
-            "Content-Type": "application/json"
+            "Authorization": "Bearer __SIRI_BRIDGE_TOKEN__"
         }
     )
     @responseDict = getDictionary(@response)
