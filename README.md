@@ -25,9 +25,9 @@ This project is an independent integration. It is not affiliated with Apple, Tel
 - **One conversation loop:** Shortcuts stays quiet on success. The assistant response in Telegram or your configured channel is the confirmation.
 - **Agent-buildable setup:** token-free Cherri templates and docs let Codex or another coding agent generate the local `.shortcut` files for you.
 
-## Why this compounds
+## Building Your Personal Context Layer
 
-The share sheet is what turns this from a voice shortcut into a capture loop. Pair this bridge with a second-brain system, LLM wiki, personal knowledge base, or OpenClaw memory pipeline, and the things you send can become reusable context for the assistant.
+The share sheet turns this from a voice shortcut into a way to collect useful context as you move through the day. Pair this bridge with a second-brain system, LLM wiki, personal knowledge base, or OpenClaw memory pipeline, and the things you send can become reusable material for the assistant.
 
 The loop becomes:
 
@@ -36,7 +36,7 @@ The loop becomes:
 3. Let OpenClaw respond now.
 4. Let your memory layer keep it around for later.
 
-Over time, the assistant has more of your actual context: the links you cared about, the screenshots you sent, the notes you dictated, the places you asked about, and the projects you keep returning to. The base model is not changing. The memory around it is.
+Over time, the assistant has more of your actual context: the links you saved, the screenshots you sent, the notes you dictated, the places you asked about, and the projects you keep returning to. The base model is not changing. The context layer around it is.
 
 ## Features
 
