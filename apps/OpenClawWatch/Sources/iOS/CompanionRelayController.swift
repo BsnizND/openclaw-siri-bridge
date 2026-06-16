@@ -32,6 +32,7 @@ final class CompanionRelayController: NSObject, ObservableObject {
 
     private func relay(fileURL: URL, metadata: [String: String]) async {
         guard let store else { return }
+        defer { try? FileManager.default.removeItem(at: fileURL) }
         let location = WatchVoiceLocation(metadata: metadata)
         let request = WatchVoiceUploadRequest(
             audioFileURL: fileURL,
@@ -66,8 +67,16 @@ extension CompanionRelayController: WCSessionDelegate {
     nonisolated func session(_ session: WCSession, didReceive file: WCSessionFile) {
         let fileURL = file.fileURL
         let metadata = (file.metadata ?? [:]).compactMapValues { $0 as? String }
+        let relayURL = FileManager.default.temporaryDirectory
+            .appending(path: "jay-bridge-relay-\(UUID().uuidString).m4a")
+        do {
+            try FileManager.default.copyItem(at: fileURL, to: relayURL)
+        } catch {
+            NSLog("Jay Bridge relay copy failed: \(error.localizedDescription)")
+            return
+        }
         Task { @MainActor in
-            await relay(fileURL: fileURL, metadata: metadata)
+            await relay(fileURL: relayURL, metadata: metadata)
         }
     }
 }
