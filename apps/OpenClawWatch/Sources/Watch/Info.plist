@@ -31,6 +31,13 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
+	<dict>
+		<key>PreciseWatchVoiceMessage</key>
+		<string>Claw Bridge can attach precise location to a voice message when you ask location-aware questions.</string>
+	</dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Claw Bridge can attach your current location to Watch voice messages when you allow it.</string>
 	<key>WKCompanionAppBundleIdentifier</key>
 	<string>com.briansnyder.ClawBridge</string>
 	<key>WKWatchKitApp</key>

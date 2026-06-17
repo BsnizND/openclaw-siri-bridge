@@ -13,6 +13,8 @@ final class WatchVoiceController: NSObject, ObservableObject {
     private var recorder: AVAudioRecorder?
     private var currentAudioURL: URL?
     private var latestLocation: CLLocation?
+    private var locationContinuation: CheckedContinuation<CLLocation?, Never>?
+    private var authorizationContinuation: CheckedContinuation<CLAuthorizationStatus, Never>?
 
     var isBusy: Bool {
         if case .sending = status { return true }
@@ -42,7 +44,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
         do {
             try await requestMicrophonePermission()
             try configureAudioSessionForRecording()
-            requestLocation()
+            requestLocationPermissionIfNeeded()
             let url = FileManager.default.temporaryDirectory.appending(path: "claw-bridge-watch-\(UUID().uuidString).m4a")
             let settings: [String: Any] = [
                 AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
@@ -86,9 +88,10 @@ final class WatchVoiceController: NSObject, ObservableObject {
             return
         }
         status = .sending
-        detailText = "Uploading"
+        detailText = "Getting location"
+        let location = await locationForUpload().map(WatchVoiceLocation.init(location:))
         do {
-            let location = latestLocation.map(WatchVoiceLocation.init(location:))
+            detailText = "Uploading"
             let request = WatchVoiceUploadRequest(
                 audioFileURL: currentAudioURL,
                 deviceName: "Apple Watch",
@@ -107,7 +110,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
                     currentAudioURL,
                     deviceName: "Apple Watch",
                     appName: "Claw Bridge",
-                    location: latestLocation.map(WatchVoiceLocation.init(location:))
+                    location: location
                 )
                 status = .queued
                 detailText = "Queued for iPhone upload"
@@ -143,9 +146,10 @@ final class WatchVoiceController: NSObject, ObservableObject {
         }
     }
 
-    private func requestLocation() {
+    private func requestLocationPermissionIfNeeded() {
         switch locationManager.authorizationStatus {
         case .notDetermined:
+            detailText = "Allow location to attach it"
             locationManager.requestWhenInUseAuthorization()
         case .authorizedWhenInUse, .authorizedAlways:
             locationManager.requestLocation()
@@ -155,18 +159,70 @@ final class WatchVoiceController: NSObject, ObservableObject {
             latestLocation = nil
         }
     }
+
+    private func locationForUpload() async -> CLLocation? {
+        let authorizationStatus = await requestLocationAuthorizationIfNeeded()
+        guard authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways else {
+            latestLocation = nil
+            return nil
+        }
+        if let latestLocation, abs(latestLocation.timestamp.timeIntervalSinceNow) < 120 {
+            return latestLocation
+        }
+        return await requestFreshLocation()
+    }
+
+    private func requestLocationAuthorizationIfNeeded() async -> CLAuthorizationStatus {
+        let authorizationStatus = locationManager.authorizationStatus
+        guard authorizationStatus == .notDetermined else {
+            return authorizationStatus
+        }
+        return await withCheckedContinuation { continuation in
+            authorizationContinuation = continuation
+            locationManager.requestWhenInUseAuthorization()
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(8))
+                self?.finishAuthorizationRequest(self?.locationManager.authorizationStatus ?? .notDetermined)
+            }
+        }
+    }
+
+    private func requestFreshLocation() async -> CLLocation? {
+        await withCheckedContinuation { continuation in
+            locationContinuation = continuation
+            locationManager.requestLocation()
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(4))
+                self?.finishLocationRequest(nil)
+            }
+        }
+    }
+
+    private func finishLocationRequest(_ location: CLLocation?) {
+        guard let continuation = locationContinuation else { return }
+        locationContinuation = nil
+        continuation.resume(returning: location)
+    }
+
+    private func finishAuthorizationRequest(_ authorizationStatus: CLAuthorizationStatus) {
+        guard let continuation = authorizationContinuation else { return }
+        authorizationContinuation = nil
+        continuation.resume(returning: authorizationStatus)
+    }
 }
 
 extension WatchVoiceController: CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         Task { @MainActor in
             latestLocation = locations.last
+            finishLocationRequest(locations.last)
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Task { @MainActor in
             latestLocation = nil
+            finishLocationRequest(nil)
             if status.isListening {
                 detailText = "Listening without location"
             }
@@ -176,6 +232,7 @@ extension WatchVoiceController: CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let authorizationStatus = manager.authorizationStatus
         Task { @MainActor in
+            finishAuthorizationRequest(authorizationStatus)
             switch authorizationStatus {
             case .authorizedWhenInUse, .authorizedAlways:
                 locationManager.requestLocation()
