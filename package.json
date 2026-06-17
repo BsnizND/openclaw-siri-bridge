@@ -1,7 +1,7 @@
 {
   "name": "claw-bridge",
   "version": "0.1.9",
-  "description": "Authenticated Apple capture bridge for sending Siri, Shortcuts, share-sheet, and Watch voice input into OpenClaw.",
+  "description": "Codex-ready iPhone and Apple Watch capture kit for OpenClaw: native watchOS push-to-talk, iOS share sheet, and Siri Shortcuts.",
   "type": "module",
   "main": "dist/src/index.js",
   "scripts": {
@@ -14,11 +14,13 @@
   },
   "keywords": [
     "openclaw",
-    "siri",
-    "shortcuts",
+    "codex",
+    "siri-shortcuts",
+    "ios",
+    "watchos",
     "apple-watch",
-    "voice",
-    "webhook"
+    "push-to-talk",
+    "share-sheet"
   ],
   "author": "Claw Bridge contributors",
   "license": "MIT",

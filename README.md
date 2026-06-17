@@ -1,6 +1,6 @@
 # claw-bridge
 
-Codex-ready Apple capture bridge for sending Siri, Shortcuts, share-sheet, and native Apple Watch voice input to OpenClaw.
+Codex-ready iPhone and Apple Watch capture kit for OpenClaw: native watchOS push-to-talk, iOS share sheet, and Siri Shortcuts.
 
 ![Claw Bridge lobster mascot looking at a watch with a voice waveform](docs/assets/claw-bridge-hero.png)
 
