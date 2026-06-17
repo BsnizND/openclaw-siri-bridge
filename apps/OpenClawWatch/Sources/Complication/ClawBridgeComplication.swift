@@ -54,10 +54,9 @@ struct ClawBridgeComplicationEntryView: View {
                     Text("Record")
                         .font(.caption2)
                 }
-            }
+        }
         case .accessoryCorner:
             complicationIcon
-                .widgetAccentable()
                 .widgetLabel {
                     Text("Record")
                 }
@@ -72,6 +71,7 @@ struct ClawBridgeComplicationEntryView: View {
 
     private var complicationIcon: some View {
         Image("ComplicationIcon")
+            .renderingMode(.original)
             .resizable()
             .scaledToFit()
             .accessibilityLabel("Claw Bridge")
