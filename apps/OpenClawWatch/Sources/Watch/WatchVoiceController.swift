@@ -7,6 +7,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
     @Published private(set) var status: WatchVoiceStatus = .idle
     @Published private(set) var detailText: String?
     @Published private(set) var lastResponseID: String?
+    @Published private(set) var isAwaitingReply = false
 
     private let uploader = WatchVoiceUploadClient()
     private let responseClient = WalkieResponseClient()
@@ -18,13 +19,13 @@ final class WatchVoiceController: NSObject, ObservableObject {
     private var currentAudioURL: URL?
     private var recordingStartedAt: Date?
     private var latestLocation: CLLocation?
-    private var locationContinuation: CheckedContinuation<CLLocation?, Never>?
-    private var authorizationContinuation: CheckedContinuation<CLAuthorizationStatus, Never>?
+    private var responsePlaybackTask: Task<Void, Never>?
+    private var responsePlaybackToken: UUID?
 
     var isBusy: Bool {
         if case .sending = status { return true }
-        if case .waitingForReply = status { return true }
         if case .playing = status { return true }
+        if isAwaitingReply { return true }
         return false
     }
 
@@ -102,10 +103,9 @@ final class WatchVoiceController: NSObject, ObservableObject {
             return
         }
         status = .sending
-        detailText = "Getting location"
-        let location = await locationForUpload().map(WatchVoiceLocation.init(location:))
+        detailText = "Uploading"
+        let location = immediateLocationForUpload().map(WatchVoiceLocation.init(location:))
         do {
-            detailText = "Uploading"
             let request = WatchVoiceUploadRequest(
                 audioFileURL: currentAudioURL,
                 deviceName: "Apple Watch",
@@ -119,9 +119,9 @@ final class WatchVoiceController: NSObject, ObservableObject {
             recordingStartedAt = nil
             if wantsVoiceReply, let responseID = response.response_id {
                 lastResponseID = responseID
-                status = .waitingForReply
-                detailText = "Waiting for Jay"
-                await waitForAndPlayResponse(responseID, configuration: configuration)
+                status = .sent
+                detailText = "Sent. Waiting for Jay"
+                beginResponsePlayback(responseID, configuration: configuration, preserveSentStatus: true)
             } else {
                 status = .sent
                 detailText = location == nil ? "Sent without location" : "Sent with location"
@@ -147,19 +147,62 @@ final class WatchVoiceController: NSObject, ObservableObject {
 
     func replayLastResponse(configuration: BridgeConfiguration) async {
         guard let lastResponseID else { return }
-        await waitForAndPlayResponse(lastResponseID, configuration: configuration)
+        beginResponsePlayback(lastResponseID, configuration: configuration, preserveSentStatus: false)
     }
 
-    private func waitForAndPlayResponse(_ responseID: String, configuration: BridgeConfiguration) async {
+    private func beginResponsePlayback(
+        _ responseID: String,
+        configuration: BridgeConfiguration,
+        preserveSentStatus: Bool
+    ) {
+        responsePlaybackTask?.cancel()
+        let token = UUID()
+        responsePlaybackToken = token
+        isAwaitingReply = true
+        if !preserveSentStatus {
+            status = .waitingForReply
+        }
+        detailText = "Waiting for Jay"
+        responsePlaybackTask = Task { [weak self] in
+            await self?.waitForAndPlayResponse(
+                responseID,
+                configuration: configuration,
+                preserveSentStatus: preserveSentStatus,
+                token: token
+            )
+        }
+    }
+
+    private func waitForAndPlayResponse(
+        _ responseID: String,
+        configuration: BridgeConfiguration,
+        preserveSentStatus: Bool,
+        token: UUID
+    ) async {
+        defer {
+            if responsePlaybackToken == token {
+                isAwaitingReply = false
+                responsePlaybackTask = nil
+                responsePlaybackToken = nil
+            }
+        }
         do {
+            if !preserveSentStatus {
+                status = .waitingForReply
+                detailText = "Waiting for Jay"
+            }
             _ = try await responseClient.waitForReady(id: responseID, configuration: configuration)
+            guard !Task.isCancelled else { return }
             status = .playing
             detailText = "Playing Jay"
             let audioURL = try await responseClient.downloadAudio(id: responseID, configuration: configuration)
+            guard !Task.isCancelled else { return }
             let finished = try await audioPlayer.play(url: audioURL)
+            guard !Task.isCancelled else { return }
             status = .replyReady
             detailText = finished ? "Jay replied" : "Playback stopped"
         } catch {
+            guard !Task.isCancelled else { return }
             status = .failed(error.localizedDescription)
             detailText = error.localizedDescription
         }
@@ -216,8 +259,8 @@ final class WatchVoiceController: NSObject, ObservableObject {
         }
     }
 
-    private func locationForUpload() async -> CLLocation? {
-        let authorizationStatus = await requestLocationAuthorizationIfNeeded()
+    private func immediateLocationForUpload() -> CLLocation? {
+        let authorizationStatus = locationManager.authorizationStatus
         guard authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways else {
             latestLocation = nil
             return nil
@@ -225,45 +268,8 @@ final class WatchVoiceController: NSObject, ObservableObject {
         if let latestLocation, abs(latestLocation.timestamp.timeIntervalSinceNow) < 120 {
             return latestLocation
         }
-        return await requestFreshLocation()
-    }
-
-    private func requestLocationAuthorizationIfNeeded() async -> CLAuthorizationStatus {
-        let authorizationStatus = locationManager.authorizationStatus
-        guard authorizationStatus == .notDetermined else {
-            return authorizationStatus
-        }
-        return await withCheckedContinuation { continuation in
-            authorizationContinuation = continuation
-            locationManager.requestWhenInUseAuthorization()
-            Task { @MainActor [weak self] in
-                try? await Task.sleep(for: .seconds(8))
-                self?.finishAuthorizationRequest(self?.locationManager.authorizationStatus ?? .notDetermined)
-            }
-        }
-    }
-
-    private func requestFreshLocation() async -> CLLocation? {
-        await withCheckedContinuation { continuation in
-            locationContinuation = continuation
-            locationManager.requestLocation()
-            Task { @MainActor [weak self] in
-                try? await Task.sleep(for: .seconds(4))
-                self?.finishLocationRequest(nil)
-            }
-        }
-    }
-
-    private func finishLocationRequest(_ location: CLLocation?) {
-        guard let continuation = locationContinuation else { return }
-        locationContinuation = nil
-        continuation.resume(returning: location)
-    }
-
-    private func finishAuthorizationRequest(_ authorizationStatus: CLAuthorizationStatus) {
-        guard let continuation = authorizationContinuation else { return }
-        authorizationContinuation = nil
-        continuation.resume(returning: authorizationStatus)
+        locationManager.requestLocation()
+        return nil
     }
 }
 
@@ -271,14 +277,12 @@ extension WatchVoiceController: CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         Task { @MainActor in
             latestLocation = locations.last
-            finishLocationRequest(locations.last)
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Task { @MainActor in
             latestLocation = nil
-            finishLocationRequest(nil)
             if status.isListening {
                 detailText = "Listening without location"
             }
@@ -288,7 +292,6 @@ extension WatchVoiceController: CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let authorizationStatus = manager.authorizationStatus
         Task { @MainActor in
-            finishAuthorizationRequest(authorizationStatus)
             switch authorizationStatus {
             case .authorizedWhenInUse, .authorizedAlways:
                 locationManager.requestLocation()
