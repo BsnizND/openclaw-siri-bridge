@@ -98,6 +98,11 @@ public final class WalkieResponseClient: Sendable {
     }
 
     public func downloadAudio(id: String, configuration: BridgeConfiguration) async throws -> URL {
+        let destination = audioCacheURL(id: id)
+        let fileManager = FileManager.default
+        if fileManager.fileExists(atPath: destination.path) {
+            return destination
+        }
         guard configuration.isComplete, let baseURL = configuration.bridgeURL else {
             throw WalkieResponseError.missingConfiguration
         }
@@ -113,10 +118,22 @@ public final class WalkieResponseClient: Sendable {
         if !(200..<300).contains(http.statusCode) {
             throw WalkieResponseError.server("Bridge returned HTTP \(http.statusCode)")
         }
-        let destination = FileManager.default.temporaryDirectory.appending(path: "claw-bridge-reply-\(id).mp3")
-        try? FileManager.default.removeItem(at: destination)
-        try FileManager.default.moveItem(at: temporaryURL, to: destination)
+        let cacheDirectory = destination.deletingLastPathComponent()
+        try fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+        let inFlightURL = cacheDirectory.appending(path: "\(destination.lastPathComponent).download-\(UUID().uuidString)")
+        try fileManager.moveItem(at: temporaryURL, to: inFlightURL)
+        if fileManager.fileExists(atPath: destination.path) {
+            try? fileManager.removeItem(at: inFlightURL)
+        } else {
+            try fileManager.moveItem(at: inFlightURL, to: destination)
+        }
         return destination
+    }
+
+    private func audioCacheURL(id: String) -> URL {
+        FileManager.default.temporaryDirectory
+            .appending(path: "claw-bridge-replies", directoryHint: .isDirectory)
+            .appending(path: "\(id).mp3")
     }
 }
 
@@ -125,22 +142,34 @@ public final class WalkieAudioPlayer: NSObject, ObservableObject, AVAudioPlayerD
     @Published public private(set) var isPlaying = false
 
     private var player: AVAudioPlayer?
+    private var finishContinuation: CheckedContinuation<Bool, Never>?
 
-    public func play(url: URL) throws {
+    public func play(url: URL) async throws -> Bool {
+        stop()
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.playback, mode: .spokenAudio)
         try session.setActive(true)
         let player = try AVAudioPlayer(contentsOf: url)
         player.delegate = self
+        player.volume = 1.0
         player.prepareToPlay()
-        guard player.play() else {
-            throw WalkieResponseError.server("Audio playback failed.")
-        }
         self.player = player
         isPlaying = true
+        return await withCheckedContinuation { continuation in
+            finishContinuation = continuation
+            if !player.play() {
+                self.finishContinuation = nil
+                self.player = nil
+                self.isPlaying = false
+                try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+                continuation.resume(returning: false)
+            }
+        }
     }
 
     public func stop() {
+        finishContinuation?.resume(returning: false)
+        finishContinuation = nil
         player?.stop()
         player = nil
         isPlaying = false
@@ -151,6 +180,8 @@ public final class WalkieAudioPlayer: NSObject, ObservableObject, AVAudioPlayerD
         Task { @MainActor in
             self.isPlaying = false
             self.player = nil
+            self.finishContinuation?.resume(returning: flag)
+            self.finishContinuation = nil
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         }
     }

@@ -96,9 +96,9 @@ final class CompanionWalkieController: ObservableObject {
             statusText = "Playing"
             detailText = "Playing Jay"
             let audioURL = try await responseClient.downloadAudio(id: responseID, configuration: configuration)
-            try audioPlayer.play(url: audioURL)
-            statusText = "Reply ready"
-            detailText = "Jay replied"
+            let finished = try await audioPlayer.play(url: audioURL)
+            statusText = finished ? "Reply ready" : "Stopped"
+            detailText = finished ? "Jay replied" : "Playback stopped"
         } catch {
             statusText = "Error"
             detailText = error.localizedDescription

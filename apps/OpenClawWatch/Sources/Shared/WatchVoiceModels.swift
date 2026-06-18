@@ -26,6 +26,7 @@ public enum WatchVoiceStatus: Equatable, Sendable {
     case queued
     case sent
     case waitingForReply
+    case playing
     case replyReady
     case failed(String)
 
@@ -42,6 +43,7 @@ public enum WatchVoiceStatus: Equatable, Sendable {
         case .queued: "Queued"
         case .sent: "Sent"
         case .waitingForReply: "Waiting"
+        case .playing: "Playing"
         case .replyReady: "Reply"
         case .failed: "Error"
         }

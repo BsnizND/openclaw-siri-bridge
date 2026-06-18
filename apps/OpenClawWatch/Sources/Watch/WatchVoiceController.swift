@@ -22,6 +22,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
     var isBusy: Bool {
         if case .sending = status { return true }
         if case .waitingForReply = status { return true }
+        if case .playing = status { return true }
         return false
     }
 
@@ -142,11 +143,12 @@ final class WatchVoiceController: NSObject, ObservableObject {
     private func waitForAndPlayResponse(_ responseID: String, configuration: BridgeConfiguration) async {
         do {
             _ = try await responseClient.waitForReady(id: responseID, configuration: configuration)
-            status = .replyReady
+            status = .playing
             detailText = "Playing Jay"
             let audioURL = try await responseClient.downloadAudio(id: responseID, configuration: configuration)
-            try audioPlayer.play(url: audioURL)
-            detailText = "Jay replied"
+            let finished = try await audioPlayer.play(url: audioURL)
+            status = .replyReady
+            detailText = finished ? "Jay replied" : "Playback stopped"
         } catch {
             status = .failed(error.localizedDescription)
             detailText = error.localizedDescription
