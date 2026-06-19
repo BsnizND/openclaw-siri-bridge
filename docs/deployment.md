@@ -44,6 +44,8 @@ For a Tailscale deployment, see [Tailscale Serve and Funnel](tailscale.md).
 
 The default CLI delivery path queues Shortcut requests immediately and drains them through `openclaw agent` in the background. This gives Siri/Shortcuts a fast `202 Accepted` response even when the agent turn takes longer.
 
+Set `OPENCLAW_CLI_DRAIN_TIMEOUT_MS` long enough for the assistant to reason and use tools. When the CLI timeout is reached, the bridge archives that queue record as failed instead of retrying it, because an interrupted agent run may already have affected the chat route or other tools.
+
 For a Telegram chat experience, point `OPENCLAW_SESSION_KEY` at the OpenClaw
 session that backs the Telegram conversation and ask OpenClaw to deliver the
 assistant response back to Telegram:

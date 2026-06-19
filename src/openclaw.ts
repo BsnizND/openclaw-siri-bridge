@@ -4,6 +4,11 @@ import { drainQueue, queueEvent } from './queue.js';
 
 export interface OpenClawDrainHooks {
   afterDelivered?: (event: NormalizedSiriEvent, result: DeliveryResult) => Promise<void>;
+  afterFailed?: (event: NormalizedSiriEvent, error: unknown) => Promise<void>;
+}
+
+class OpenClawDeliveryTimeoutError extends Error {
+  retryable = false;
 }
 
 function formatLocation(event: NormalizedSiriEvent): string[] {
@@ -242,7 +247,11 @@ async function deliverViaCli(config: BridgeConfig, event: NormalizedSiriEvent): 
     const timeout = setTimeout(() => {
       settled = true;
       child.kill('SIGTERM');
-      reject(new Error(`openclaw delivery exceeded ${timeoutMs}ms`));
+      reject(
+        new OpenClawDeliveryTimeoutError(
+          `openclaw delivery exceeded ${timeoutMs}ms; not retrying because the agent attempt may have side effects`
+        )
+      );
     }, timeoutMs);
     child.stdout.on('data', (chunk) => {
       stdout += String(chunk);
@@ -303,6 +312,12 @@ export async function deliverQueuedEventToOpenClaw(
 export async function drainOpenClawQueue(config: BridgeConfig, hooks: OpenClawDrainHooks = {}) {
   return drainQueue(config.queuePath, config.queueArchivePath, config.queueMaxAttempts, async (event) => {
     const result = await deliverQueuedEventToOpenClaw(config, event);
-    await hooks.afterDelivered?.(event, result);
+    try {
+      await hooks.afterDelivered?.(event, result);
+    } catch {
+      // App-response fanout must not cause a second OpenClaw/Telegram delivery.
+    }
+  }, {
+    afterFailed: hooks.afterFailed
   });
 }

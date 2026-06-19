@@ -29,6 +29,7 @@ describe('config', () => {
     expect(config.assistantId).toBe('openclaw');
     expect(config.allowedSources.has('siri_watch')).toBe(true);
     expect(config.openclawAdapter).toBe('cli');
+    expect(config.openclawCliDrainTimeoutMs).toBe(360000);
     expect(config.openclawDeliverReply).toBe(false);
     expect(config.openclawMessageStyle).toBe('detailed');
     expect(config.queueArchivePath).toBe('./data/claw-bridge-queue.jsonl.archive');

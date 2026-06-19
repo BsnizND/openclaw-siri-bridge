@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppResponseStore } from '../src/app-response-store.js';
 import { synthesizeElevenLabsSpeech } from '../src/elevenlabs.js';
-import { renderAppVoiceReply } from '../src/voice-replies.js';
+import { failAppVoiceReply, renderAppVoiceReply } from '../src/voice-replies.js';
 import type { BridgeConfig, NormalizedSiriEvent } from '../src/types.js';
 
 const originalFetch = globalThis.fetch;
@@ -145,6 +145,26 @@ describe('ElevenLabs voice replies', () => {
     expect(failed).toMatchObject({
       status: 'failed',
       error: 'OpenClaw did not return reply text for voice rendering'
+    });
+  });
+
+  it('marks app response records failed when OpenClaw delivery fails', async () => {
+    const dir = join(tmpdir(), `claw-bridge-render-delivery-fail-test-${Date.now()}`);
+    const store = new AppResponseStore(dir, 60000);
+    const pending = await store.createPending({
+      source: 'watch_app',
+      assistant: 'openclaw',
+      raw_text: 'hello',
+      captured_at: new Date().toISOString(),
+      request_id: 'voice-reply-request'
+    });
+
+    await failAppVoiceReply(store, event(pending.id), new Error('openclaw delivery exceeded 360000ms'));
+
+    const failed = await store.get(pending.id);
+    expect(failed).toMatchObject({
+      status: 'failed',
+      error: 'openclaw delivery exceeded 360000ms'
     });
   });
 });

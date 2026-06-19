@@ -3,7 +3,7 @@ import { AppDeviceStore } from './app-device-store.js';
 import { AppResponseStore } from './app-response-store.js';
 import { loadConfig } from './config.js';
 import { drainOpenClawQueue } from './openclaw.js';
-import { renderAppVoiceReply } from './voice-replies.js';
+import { failAppVoiceReply, renderAppVoiceReply } from './voice-replies.js';
 
 const config = loadConfig();
 const appDeviceStore = new AppDeviceStore(config.appDeviceDir);
@@ -28,7 +28,8 @@ async function drainOnce(reason: string) {
   if (draining) {
     const ageMs = Date.now() - drainStartedAt;
     if (ageMs <= staleDrainAfterMs) return;
-    console.error(`openclaw queue drain appears stuck after ${ageMs}ms; starting recovery drain reason=${reason}`);
+    console.error(`openclaw queue drain appears stuck after ${ageMs}ms; skipping overlapping drain reason=${reason}`);
+    return;
   }
   draining = true;
   drainStartedAt = Date.now();
@@ -36,6 +37,9 @@ async function drainOnce(reason: string) {
     const result = await drainOpenClawQueue(config, {
       afterDelivered: async (event, delivery) => {
         await renderAppVoiceReply(config, appResponseStore, event, delivery, appDeviceStore);
+      },
+      afterFailed: async (event, error) => {
+        await failAppVoiceReply(appResponseStore, event, error);
       }
     });
     if (result.delivered > 0 || result.failed > 0 || result.archived > 0) {

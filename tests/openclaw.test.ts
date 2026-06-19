@@ -328,4 +328,91 @@ describe('OpenClaw delivery', () => {
     expect(archive).toContain('openclaw exited 2');
     await rm(dir, { recursive: true, force: true });
   });
+
+  it('does not retry OpenClaw delivery when the app response hook fails', async () => {
+    const dir = join(tmpdir(), `claw-bridge-hook-failure-test-${Date.now()}`);
+    await mkdir(dir, { recursive: true });
+    const queuePath = join(dir, 'queue.jsonl');
+    const archivePath = join(dir, 'queue.archive.jsonl');
+    const binPath = join(dir, 'fake-openclaw');
+    const attemptsPath = join(dir, 'attempts.txt');
+    await writeFile(
+      binPath,
+      `#!/bin/sh\necho attempt >> '${attemptsPath}'\nprintf '{"reply":"delivered reply text"}\\n'\n`,
+      'utf8'
+    );
+    await chmod(binPath, 0o755);
+
+    const config = {
+      openclawAdapter: 'cli',
+      openclawCliBin: binPath,
+      openclawCliDrainTimeoutMs: 1000,
+      assistantId: 'openclaw',
+      openclawSessionKey: 'agent:openclaw:main',
+      queuePath,
+      queueArchivePath: archivePath,
+      queueMaxAttempts: 3
+    } as BridgeConfig;
+
+    await acceptForOpenClaw(config, event('this should reach OpenClaw once'));
+    const drain = await drainOpenClawQueue(config, {
+      afterDelivered: async () => {
+        throw new Error('voice rendering failed');
+      }
+    });
+
+    expect(drain).toEqual({ delivered: 1, failed: 0, pending: 0, archived: 1 });
+    const attempts = await readFile(attemptsPath, 'utf8');
+    expect(attempts.trim().split('\n')).toHaveLength(1);
+    const archive = await readFile(archivePath, 'utf8');
+    expect(archive).toContain('"status":"delivered"');
+    expect(archive).toContain('"attempts":1');
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('marks OpenClaw CLI timeouts failed without retrying side-effecting delivery', async () => {
+    const dir = join(tmpdir(), `claw-bridge-timeout-test-${Date.now()}`);
+    await mkdir(dir, { recursive: true });
+    const queuePath = join(dir, 'queue.jsonl');
+    const archivePath = join(dir, 'queue.archive.jsonl');
+    const binPath = join(dir, 'slow-openclaw');
+    const attemptsPath = join(dir, 'attempts.txt');
+    await writeFile(
+      binPath,
+      `#!/bin/sh\necho attempt >> '${attemptsPath}'\ntrap 'exit 143' TERM\nwhile true; do sleep 1; done\n`,
+      'utf8'
+    );
+    await chmod(binPath, 0o755);
+
+    const config = {
+      openclawAdapter: 'cli',
+      openclawCliBin: binPath,
+      openclawCliDrainTimeoutMs: 500,
+      assistantId: 'openclaw',
+      openclawSessionKey: 'agent:openclaw:main',
+      queuePath,
+      queueArchivePath: archivePath,
+      queueMaxAttempts: 3
+    } as BridgeConfig;
+
+    let failedMessage = '';
+    await acceptForOpenClaw(config, event('this should not retry after timeout'));
+    const drain = await drainOpenClawQueue(config, {
+      afterFailed: async (_event, error) => {
+        failedMessage = error instanceof Error ? error.message : String(error);
+      }
+    });
+
+    expect(drain).toEqual({ delivered: 0, failed: 1, pending: 0, archived: 1 });
+    expect(failedMessage).toContain('openclaw delivery exceeded 500ms');
+    const attempts = await readFile(attemptsPath, 'utf8');
+    expect(attempts.trim().split('\n')).toHaveLength(1);
+    const queue = await readFile(queuePath, 'utf8');
+    expect(queue).toBe('');
+    const archive = await readFile(archivePath, 'utf8');
+    expect(archive).toContain('"status":"failed"');
+    expect(archive).toContain('"attempts":1');
+    expect(archive).toContain('not retrying because the agent attempt may have side effects');
+    await rm(dir, { recursive: true, force: true });
+  });
 });

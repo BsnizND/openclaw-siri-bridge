@@ -53,3 +53,14 @@ export async function renderAppVoiceReply(
     await store.markNotification(responseId, 'failed', message);
   }
 }
+
+export async function failAppVoiceReply(
+  store: AppResponseStore,
+  event: NormalizedSiriEvent,
+  error: unknown
+): Promise<void> {
+  const responseId = event.app_response?.id;
+  if (!responseId) return;
+  const message = error instanceof Error ? error.message : String(error);
+  await store.fail(responseId, message);
+}

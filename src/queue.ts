@@ -52,11 +52,26 @@ export interface DrainQueueResult {
   archived: number;
 }
 
+export interface DrainQueueHooks {
+  afterFailed?: (event: NormalizedSiriEvent, error: unknown) => Promise<void>;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isRetryableError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return true;
+  const retryable = (error as { retryable?: unknown }).retryable;
+  return retryable !== false;
+}
+
 export async function drainQueue(
   queuePath: string,
   archivePath: string,
   maxAttempts: number,
-  deliver: (event: NormalizedSiriEvent) => Promise<void>
+  deliver: (event: NormalizedSiriEvent) => Promise<void>,
+  hooks: DrainQueueHooks = {}
 ): Promise<DrainQueueResult> {
   const records = await readQueue(queuePath);
   let delivered = 0;
@@ -83,10 +98,15 @@ export async function drainQueue(
       record.last_error = undefined;
       delivered += 1;
     } catch (error) {
-      record.last_error = error instanceof Error ? error.message : String(error);
-      if (record.attempts >= maxAttempts) {
+      record.last_error = errorMessage(error);
+      if (!isRetryableError(error) || record.attempts >= maxAttempts) {
         record.status = 'failed';
         failed += 1;
+        try {
+          await hooks.afterFailed?.(record.event, error);
+        } catch (hookError) {
+          record.last_error = `${record.last_error}; failure hook failed: ${errorMessage(hookError)}`;
+        }
       }
     }
   }

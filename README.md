@@ -335,6 +335,7 @@ Important settings:
 - `OPENCLAW_SESSION_KEY`: OpenClaw session key for CLI delivery.
 - `OPENCLAW_WORKDIR`: optional directory to use when spawning the OpenClaw CLI.
 - `OPENCLAW_ADAPTER`: `cli` or `http`.
+- `OPENCLAW_CLI_DRAIN_TIMEOUT_MS`: maximum time to wait for one CLI agent turn. CLI timeouts are archived as failed instead of retried because a timed-out agent run may already have delivered text or used tools.
 - `OPENCLAW_DELIVER_REPLY`: set to `true` when OpenClaw should deliver the assistant reply back to a channel.
 - `OPENCLAW_REPLY_CHANNEL` / `OPENCLAW_REPLY_TO`: reply route for `OPENCLAW_DELIVER_REPLY`.
 - `OPENCLAW_MESSAGE_STYLE`: `detailed` metadata payload or `compact` user-facing transcript.
