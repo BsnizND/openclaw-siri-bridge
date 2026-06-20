@@ -15,10 +15,14 @@ final class WatchVoiceController: NSObject, ObservableObject {
     private let locationManager = CLLocationManager()
     private let minimumRecordingByteCount: UInt64 = 4_096
     private let minimumRecordingDuration: TimeInterval = 0.8
+    private let maximumLocationAge: TimeInterval = 120
+    private let locationUploadTimeoutNanoseconds: UInt64 = 4_000_000_000
     private var recorder: AVAudioRecorder?
     private var currentAudioURL: URL?
     private var recordingStartedAt: Date?
     private var latestLocation: CLLocation?
+    private var pendingLocationContinuation: CheckedContinuation<CLLocation?, Never>?
+    private var locationTimeoutTask: Task<Void, Never>?
     private var responsePlaybackTask: Task<Void, Never>?
     private var responsePlaybackToken: UUID?
 
@@ -105,8 +109,9 @@ final class WatchVoiceController: NSObject, ObservableObject {
             return
         }
         status = .sending
-        detailText = "Uploading"
-        let location = immediateLocationForUpload().map(WatchVoiceLocation.init(location:))
+        detailText = "Getting location"
+        let location = await locationForUpload().map(WatchVoiceLocation.init(location:))
+        detailText = location == nil ? "Uploading without location" : "Uploading"
         do {
             let request = WatchVoiceUploadRequest(
                 audioFileURL: currentAudioURL,
@@ -276,30 +281,64 @@ final class WatchVoiceController: NSObject, ObservableObject {
         }
     }
 
-    private func immediateLocationForUpload() -> CLLocation? {
+    private func freshLocation() -> CLLocation? {
+        guard let latestLocation, abs(latestLocation.timestamp.timeIntervalSinceNow) < maximumLocationAge else {
+            return nil
+        }
+        return latestLocation
+    }
+
+    private func locationForUpload() async -> CLLocation? {
         let authorizationStatus = locationManager.authorizationStatus
         guard authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways else {
             latestLocation = nil
             return nil
         }
-        if let latestLocation, abs(latestLocation.timestamp.timeIntervalSinceNow) < 120 {
+        if let latestLocation = freshLocation() {
             return latestLocation
         }
+
+        pendingLocationContinuation?.resume(returning: nil)
+        locationTimeoutTask?.cancel()
         locationManager.requestLocation()
-        return nil
+        let timeoutNanoseconds = locationUploadTimeoutNanoseconds
+        return await withCheckedContinuation { continuation in
+            pendingLocationContinuation = continuation
+            locationTimeoutTask = Task { [weak self] in
+                do {
+                    try await Task.sleep(nanoseconds: timeoutNanoseconds)
+                } catch {
+                    return
+                }
+                await MainActor.run {
+                    self?.resolvePendingLocation(nil)
+                }
+            }
+        }
+    }
+
+    private func resolvePendingLocation(_ location: CLLocation?) {
+        guard let continuation = pendingLocationContinuation else { return }
+        pendingLocationContinuation = nil
+        locationTimeoutTask?.cancel()
+        locationTimeoutTask = nil
+        continuation.resume(returning: location)
     }
 }
 
 extension WatchVoiceController: CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         Task { @MainActor in
-            latestLocation = locations.last
+            let location = locations.last
+            latestLocation = location
+            resolvePendingLocation(location)
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Task { @MainActor in
             latestLocation = nil
+            resolvePendingLocation(nil)
             if status.isListening {
                 detailText = "Listening without location"
             }
@@ -314,6 +353,7 @@ extension WatchVoiceController: CLLocationManagerDelegate {
                 locationManager.requestLocation()
             default:
                 latestLocation = nil
+                resolvePendingLocation(nil)
             }
         }
     }

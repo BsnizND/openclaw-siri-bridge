@@ -372,7 +372,9 @@ export function createApp(config: BridgeConfig, deps: AppDependencies = {}) {
             requestId: event.request_id,
             source: event.source,
             assistant: event.assistant,
-            deviceName: event.device_name
+            deviceName: event.device_name,
+            hasLocation: Boolean(event.location),
+            bodyKeys: Object.keys(body).sort()
           },
           'watch voice accepted'
         );
