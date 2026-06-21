@@ -135,6 +135,7 @@ final class CompanionRelayController: NSObject, ObservableObject {
                 deviceName: metadata["device_name"] ?? "Apple Watch",
                 appName: metadata["app_name"] ?? "Claw Bridge",
                 capturedAt: capturedAt,
+                durationSeconds: metadata["recording_duration_seconds"].flatMap(Double.init),
                 location: location,
                 noLocationReason: metadata["no_location_reason"],
                 wantsVoiceReply: wantsVoiceReply,

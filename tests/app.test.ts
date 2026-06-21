@@ -17,6 +17,7 @@ function config(): BridgeConfig {
     allowedSources: new Set(['siri_watch', 'siri_iphone', 'shortcuts', 'ios_share_sheet', 'watch_app']),
     shareUploadDir: join(tmpdir(), `claw-bridge-share-test-${Date.now()}`),
     shareMaxUploadBytes: 1024 * 1024,
+    watchMinAudioSeconds: 1.5,
     audioTranscribeEnabled: false
   } as BridgeConfig;
 }
@@ -241,6 +242,7 @@ describe('app routes', () => {
       .field('device_name', 'Apple Watch Ultra')
       .field('app_name', 'OpenClaw Watch')
       .field('captured_at', '2026-06-14T20:12:00.000Z')
+      .field('recording_duration_seconds', '2.4')
       .field('source_context', 'golf_mode')
       .field('latitude', '33.6001')
       .field('longitude', '-111.9002')
@@ -281,8 +283,12 @@ describe('app routes', () => {
         voice_memo: expect.objectContaining({
           filename: 'watch-message.m4a',
           mime_type: 'audio/mp4',
+          duration_seconds: 2.4,
           size_bytes: 9,
           file_path: expect.stringContaining('watch-message.m4a')
+        }),
+        capture_receipt: expect.objectContaining({
+          audio_duration_seconds: 2.4
         })
       })
     );
@@ -295,6 +301,7 @@ describe('app routes', () => {
       .post('/watch/voice')
       .set('Authorization', 'Bearer 0123456789abcdef01234567')
       .field('source_context', 'shot_classifier')
+      .field('recording_duration_seconds', '2.0')
       .attach('audio', Buffer.from('audio-ish'), {
         filename: 'watch-message.m4a',
         contentType: 'audio/mp4'
@@ -313,6 +320,7 @@ describe('app routes', () => {
       .field('device_name', 'Apple Watch Ultra')
       .field('app_name', 'OpenClaw Watch')
       .field('captured_at', '2026-06-14T20:12:00.000Z')
+      .field('recording_duration_seconds', '2.0')
       .field('no_location_reason', 'location_timeout')
       .attach('audio', Buffer.from('audio-ish'), {
         filename: 'watch-message.m4a',
@@ -324,7 +332,8 @@ describe('app routes', () => {
     expect(event).toMatchObject({
       source: 'watch_app',
       capture_receipt: {
-        no_location_reason: 'location_timeout'
+        no_location_reason: 'location_timeout',
+        audio_duration_seconds: 2
       }
     });
     expect(event.location).toBeUndefined();
@@ -341,6 +350,7 @@ describe('app routes', () => {
       .post('/watch/voice')
       .set('Authorization', 'Bearer 0123456789abcdef01234567')
       .field('walkie_mode', 'true')
+      .field('recording_duration_seconds', '2.0')
       .field('app_device_id', 'ios-test-device')
       .field('app_platform', 'ios')
       .attach('audio', Buffer.from('audio-ish'), {
@@ -430,11 +440,43 @@ describe('app routes', () => {
     expect(acceptEvent).not.toHaveBeenCalled();
   });
 
+  it('rejects too-short native Watch voice uploads before delivery', async () => {
+    const acceptEvent = vi.fn();
+    const res = await request(createApp(config(), { acceptEvent }))
+      .post('/watch/voice')
+      .set('Authorization', 'Bearer 0123456789abcdef01234567')
+      .field('recording_duration_seconds', '0.86')
+      .attach('audio', Buffer.from('audio-ish'), {
+        filename: 'watch-message.m4a',
+        contentType: 'audio/mp4'
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('watch voice audio is too short');
+    expect(acceptEvent).not.toHaveBeenCalled();
+  });
+
+  it('rejects native Watch voice uploads when duration is unknown', async () => {
+    const acceptEvent = vi.fn();
+    const res = await request(createApp(config(), { acceptEvent }))
+      .post('/watch/voice')
+      .set('Authorization', 'Bearer 0123456789abcdef01234567')
+      .attach('audio', Buffer.from('audio-ish'), {
+        filename: 'watch-message.m4a',
+        contentType: 'audio/mp4'
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('watch voice audio duration is required');
+    expect(acceptEvent).not.toHaveBeenCalled();
+  });
+
   it('rejects native Watch voice uploads with invalid location', async () => {
     const acceptEvent = vi.fn();
     const res = await request(createApp(config(), { acceptEvent }))
       .post('/watch/voice')
       .set('Authorization', 'Bearer 0123456789abcdef01234567')
+      .field('recording_duration_seconds', '2.0')
       .field('latitude', '133')
       .field('longitude', '-111.9002')
       .attach('audio', Buffer.from('audio-ish'), {

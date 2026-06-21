@@ -5,6 +5,7 @@ public struct WatchVoiceUploadRequest: Sendable {
     public var deviceName: String
     public var appName: String
     public var capturedAt: Date
+    public var durationSeconds: TimeInterval?
     public var location: WatchVoiceLocation?
     public var noLocationReason: String?
     public var wantsVoiceReply: Bool
@@ -17,6 +18,7 @@ public struct WatchVoiceUploadRequest: Sendable {
         deviceName: String,
         appName: String,
         capturedAt: Date = Date(),
+        durationSeconds: TimeInterval? = nil,
         location: WatchVoiceLocation? = nil,
         noLocationReason: String? = nil,
         wantsVoiceReply: Bool = false,
@@ -28,6 +30,7 @@ public struct WatchVoiceUploadRequest: Sendable {
         self.deviceName = deviceName
         self.appName = appName
         self.capturedAt = capturedAt
+        self.durationSeconds = durationSeconds
         self.location = location
         self.noLocationReason = noLocationReason
         self.wantsVoiceReply = wantsVoiceReply
@@ -117,6 +120,9 @@ public final class WatchVoiceUploadClient: Sendable {
         body.appendFormField("device_name", value: request.deviceName, boundary: boundary)
         body.appendFormField("app_name", value: request.appName, boundary: boundary)
         body.appendFormField("captured_at", value: ISO8601DateFormatter().string(from: request.capturedAt), boundary: boundary)
+        if let durationSeconds = request.durationSeconds, durationSeconds.isFinite {
+            body.appendFormField("recording_duration_seconds", value: String(durationSeconds), boundary: boundary)
+        }
         if let sourceContext = request.sourceContext {
             body.appendFormField("source_context", value: sourceContext.rawValue, boundary: boundary)
         }

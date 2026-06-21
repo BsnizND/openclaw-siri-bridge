@@ -1,6 +1,9 @@
 import { createReadStream, mkdirSync, writeFileSync } from 'node:fs';
+import { unlink } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import express from 'express';
 import multer from 'multer';
 import pino from 'pino';
@@ -12,6 +15,8 @@ import { normalizeShortcutMessage } from './siri.js';
 import { normalizeShareSheetRequest, type UploadedShareFile } from './share.js';
 import { isAudioMimeType, transcribeAudioFile } from './transcribe.js';
 import { normalizeWatchVoiceRequest } from './watch.js';
+
+const execFileAsync = promisify(execFile);
 
 export interface AppDependencies {
   acceptEvent?: (event: NormalizedSiriEvent) => Promise<DeliveryResult>;
@@ -117,6 +122,72 @@ function wantsVoiceResponse(body: Record<string, unknown>): boolean {
     truthy(body.walkie_mode) ||
     truthy(body.walkie)
   );
+}
+
+function numericBodyValue(value: unknown): number | undefined {
+  if (Array.isArray(value)) return numericBodyValue(value[0]);
+  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) return value;
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  const parsed = Number(value.trim());
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+function likelyWatchAudioFile(file: UploadedShareFile | undefined): file is UploadedShareFile {
+  if (!file) return false;
+  if (isAudioMimeType(file.mimetype)) return true;
+  if (file.mimetype?.toLowerCase() === 'application/octet-stream') return true;
+  return ['.m4a', '.aac', '.caf', '.wav', '.mp3', '.mp4'].includes(extname(file.originalname).toLowerCase());
+}
+
+async function measuredAudioDurationSeconds(file: UploadedShareFile): Promise<number | undefined> {
+  try {
+    const { stdout } = await execFileAsync('/usr/bin/afinfo', [file.path], {
+      timeout: 5000,
+      maxBuffer: 256 * 1024
+    });
+    const match = stdout.match(/estimated duration:\s*([0-9.]+)/i);
+    if (!match) return undefined;
+    const duration = Number(match[1]);
+    return Number.isFinite(duration) && duration >= 0 ? duration : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function watchVoiceDurationSeconds(
+  body: Record<string, unknown>,
+  file: UploadedShareFile | undefined
+): Promise<number | undefined> {
+  return (
+    numericBodyValue(body.recording_duration_seconds) ??
+    numericBodyValue(body.duration_seconds) ??
+    (file && likelyWatchAudioFile(file) ? await measuredAudioDurationSeconds(file) : undefined)
+  );
+}
+
+async function rejectTooShortWatchVoice(config: BridgeConfig, body: Record<string, unknown>, file: UploadedShareFile | undefined) {
+  if (!likelyWatchAudioFile(file)) return;
+  const minimumSeconds =
+    Number.isFinite(config.watchMinAudioSeconds) && config.watchMinAudioSeconds > 0 ? config.watchMinAudioSeconds : 1.5;
+  const duration = await watchVoiceDurationSeconds(body, file);
+  if (duration === undefined) {
+    throw new Error('watch voice audio duration is required');
+  }
+  body.recording_duration_seconds = String(duration);
+  if (duration < minimumSeconds) {
+    throw new Error(
+      `watch voice audio is too short (${duration.toFixed(2)}s); record at least ${minimumSeconds.toFixed(1)}s`
+    );
+  }
+}
+
+async function removeUploadedFile(file: UploadedShareFile | undefined) {
+  if (!file?.path) return;
+  try {
+    await unlink(file.path);
+  } catch {
+    // Best-effort cleanup only.
+  }
 }
 
 function appPlatform(value: unknown) {
@@ -362,6 +433,7 @@ export function createApp(config: BridgeConfig, deps: AppDependencies = {}) {
       try {
         const body = req.body as Record<string, unknown>;
         const file = req.file as UploadedShareFile | undefined;
+        await rejectTooShortWatchVoice(config, body, file);
         const transcript =
           file && isAudioMimeType(file.mimetype) ? await transcribeAudioFile(config, file.path) : undefined;
         const event = normalizeWatchVoiceRequest(config, body, file, transcript);
@@ -374,6 +446,7 @@ export function createApp(config: BridgeConfig, deps: AppDependencies = {}) {
             assistant: event.assistant,
             deviceName: event.device_name,
             hasLocation: Boolean(event.location),
+            audioDurationSeconds: event.voice_memo?.duration_seconds,
             locationAgeSeconds: event.location?.location_age_seconds,
             noLocationReason: event.capture_receipt?.no_location_reason,
             bodyKeys: Object.keys(body).sort()
@@ -388,6 +461,7 @@ export function createApp(config: BridgeConfig, deps: AppDependencies = {}) {
           ...(response ? appResponsePayload(req, response.id) : {})
         });
       } catch (error) {
+        await removeUploadedFile(req.file as UploadedShareFile | undefined);
         const message = error instanceof Error ? error.message : 'watch voice rejected';
         logger.warn({ error: message, bodyKeys: Object.keys(req.body ?? {}) }, 'watch voice rejected');
         res.status(400).json({ ok: false, error: message });

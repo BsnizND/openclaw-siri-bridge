@@ -101,6 +101,7 @@ final class WatchRelayController: NSObject, ObservableObject {
         _ fileURL: URL,
         deviceName: String,
         appName: String,
+        durationSeconds: TimeInterval?,
         location: WatchVoiceLocation?,
         noLocationReason: String? = nil,
         wantsVoiceReply: Bool = false,
@@ -117,6 +118,9 @@ final class WatchRelayController: NSObject, ObservableObject {
             "app_name": appName,
             "captured_at": ISO8601DateFormatter().string(from: Date())
         ]
+        if let durationSeconds, durationSeconds.isFinite {
+            metadata["recording_duration_seconds"] = String(durationSeconds)
+        }
         if wantsVoiceReply {
             metadata["response_mode"] = "voice"
             metadata["walkie_mode"] = "true"

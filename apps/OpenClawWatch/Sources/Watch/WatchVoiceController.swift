@@ -14,7 +14,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
     private let audioPlayer = WalkieAudioPlayer()
     private let locationManager = CLLocationManager()
     private let minimumRecordingByteCount: UInt64 = 4_096
-    private let minimumRecordingDuration: TimeInterval = 0.8
+    private let minimumRecordingDuration: TimeInterval = 1.5
     private let maximumLocationAge: TimeInterval = 120
     private let locationUploadTimeoutNanoseconds: UInt64 = 4_000_000_000
     private let requiredLocationUploadTimeoutNanoseconds: UInt64 = 15_000_000_000
@@ -140,6 +140,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
                 audioFileURL: currentAudioURL,
                 deviceName: "Apple Watch",
                 appName: "Claw Bridge",
+                durationSeconds: recordingDuration,
                 location: location,
                 noLocationReason: locationReceipt.noLocationReason,
                 wantsVoiceReply: wantsVoiceReply,
@@ -165,6 +166,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
                     currentAudioURL,
                     deviceName: "Apple Watch",
                     appName: "Claw Bridge",
+                    durationSeconds: recordingDuration,
                     location: location,
                     noLocationReason: locationReceipt.noLocationReason,
                     wantsVoiceReply: wantsVoiceReply,

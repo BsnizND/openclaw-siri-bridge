@@ -118,6 +118,7 @@ describe('config', () => {
       CLAW_BRIDGE_TOKEN: '0123456789abcdef01234567',
       SHARE_UPLOAD_DIR: '/tmp/share-uploads',
       SHARE_MAX_UPLOAD_BYTES: '1048576',
+      WATCH_MIN_AUDIO_SECONDS: '1.75',
       AUDIO_TRANSCRIBE_ENABLED: 'true',
       AUDIO_TRANSCRIBE_CLI_BIN: '/opt/homebrew/bin/openclaw',
       AUDIO_TRANSCRIBE_TIMEOUT_MS: '600000',
@@ -126,6 +127,7 @@ describe('config', () => {
     });
     expect(config.shareUploadDir).toBe('/tmp/share-uploads');
     expect(config.shareMaxUploadBytes).toBe(1048576);
+    expect(config.watchMinAudioSeconds).toBe(1.75);
     expect(config.audioTranscribeEnabled).toBe(true);
     expect(config.audioTranscribeCliBin).toBe('/opt/homebrew/bin/openclaw');
     expect(config.audioTranscribeTimeoutMs).toBe(600000);

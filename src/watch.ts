@@ -10,6 +10,13 @@ function asOptionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
+function asOptionalNumber(value: unknown): number | undefined {
+  const raw = asOptionalString(value);
+  if (!raw) return undefined;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
 function parseJsonObject(value: string | undefined): Record<string, unknown> | undefined {
   if (!value) return undefined;
   const parsed = JSON.parse(value) as unknown;
@@ -97,12 +104,15 @@ export function normalizeWatchVoiceRequest(
     mime_type: file.mimetype,
     file_path: file.path,
     size_bytes: file.size,
+    duration_seconds: asOptionalNumber(body.recording_duration_seconds) ?? asOptionalNumber(body.duration_seconds),
     recorded_at: asOptionalString(body.recorded_at)
   };
   const noLocationReason = asOptionalString(body.no_location_reason);
-  if (!event.location && noLocationReason) {
+  const audioDurationSeconds = asOptionalNumber(body.recording_duration_seconds) ?? asOptionalNumber(body.duration_seconds);
+  if ((!event.location && noLocationReason) || audioDurationSeconds !== undefined) {
     event.capture_receipt = {
-      no_location_reason: noLocationReason
+      no_location_reason: !event.location ? noLocationReason : undefined,
+      audio_duration_seconds: audioDurationSeconds
     };
   }
 

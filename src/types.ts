@@ -33,6 +33,7 @@ export interface BridgeConfig {
   queueMaxAttempts: number;
   shareUploadDir: string;
   shareMaxUploadBytes: number;
+  watchMinAudioSeconds: number;
   appResponseDir: string;
   appResponseTtlMs: number;
   elevenLabsApiKey?: string;
@@ -104,6 +105,7 @@ export interface SharedItemMetadata {
 
 export interface CaptureReceiptMetadata {
   no_location_reason?: string;
+  audio_duration_seconds?: number;
 }
 
 export type SourceContext = 'golf_mode';
