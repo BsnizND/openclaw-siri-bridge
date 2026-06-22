@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, stat, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import type { AppResponseRecord, NormalizedSiriEvent } from './types.js';
 
@@ -52,6 +52,25 @@ export class AppResponseStore {
       return expired;
     }
     return record;
+  }
+
+  async findByRequestId(requestId: string): Promise<AppResponseRecord | undefined> {
+    let entries: string[] = [];
+    try {
+      entries = await readdir(this.responseDir);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+      throw error;
+    }
+    for (const entry of entries) {
+      if (!entry.endsWith('.json')) continue;
+      const id = entry.slice(0, -'.json'.length);
+      const record = await this.readRecord(id);
+      if (record?.request_id === requestId) {
+        return await this.get(record.id);
+      }
+    }
+    return undefined;
   }
 
   async markRendering(id: string): Promise<AppResponseRecord> {

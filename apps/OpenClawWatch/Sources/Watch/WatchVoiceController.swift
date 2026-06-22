@@ -179,6 +179,8 @@ final class WatchVoiceController: NSObject, ObservableObject {
         }
         status = .sending
         let sendToken = UUID()
+        let requestID = UUID().uuidString
+        let capturedAt = Date()
         sendOperationToken = sendToken
         let requiresLocation = sourceContext == .golfMode
         detailText = requiresLocation ? "Getting GPS" : "Getting location"
@@ -191,9 +193,11 @@ final class WatchVoiceController: NSObject, ObservableObject {
         detailText = location == nil ? "Uploading without location" : "Uploading"
         do {
             let request = WatchVoiceUploadRequest(
+                requestID: requestID,
                 audioFileURL: currentAudioURL,
                 deviceName: "Apple Watch",
                 appName: "Claw Bridge",
+                capturedAt: capturedAt,
                 durationSeconds: recordingDuration,
                 location: location,
                 noLocationReason: locationReceipt.noLocationReason,
@@ -226,8 +230,10 @@ final class WatchVoiceController: NSObject, ObservableObject {
             do {
                 _ = try WatchRelayController.shared.relayAudioFile(
                     currentAudioURL,
+                    requestID: requestID,
                     deviceName: "Apple Watch",
                     appName: "Claw Bridge",
+                    capturedAt: capturedAt,
                     durationSeconds: recordingDuration,
                     location: location,
                     noLocationReason: locationReceipt.noLocationReason,

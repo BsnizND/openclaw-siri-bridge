@@ -212,6 +212,16 @@ async function attachVoiceResponseIfRequested(
   event: NormalizedSiriEvent
 ) {
   if (!wantsVoiceResponse(body)) return undefined;
+  const existing = await store.findByRequestId(event.request_id);
+  if (existing) {
+    event.app_response = {
+      id: existing.id,
+      mode: existing.mode,
+      app_device_id: existing.app_device_id,
+      app_platform: existing.app_platform
+    };
+    return existing;
+  }
   event.app_response = {
     id: '',
     mode: 'voice',

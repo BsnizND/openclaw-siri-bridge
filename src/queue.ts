@@ -29,6 +29,20 @@ export async function readQueue(queuePath: string): Promise<QueueRecord[]> {
     .map((line) => JSON.parse(line) as QueueRecord);
 }
 
+export async function hasQueuedOrArchivedRequest(
+  queuePath: string,
+  archivePath: string,
+  requestId: string
+): Promise<boolean> {
+  for (const path of [queuePath, archivePath]) {
+    const records = await readQueue(path);
+    if (records.some((record) => record.event.request_id === requestId)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 async function writeQueue(queuePath: string, records: QueueRecord[]): Promise<void> {
   await mkdir(dirname(queuePath), { recursive: true });
   const tmpPath = `${queuePath}.tmp`;

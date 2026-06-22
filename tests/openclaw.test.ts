@@ -163,6 +163,33 @@ describe('OpenClaw delivery', () => {
     await rm(dir, { recursive: true, force: true });
   });
 
+  it('does not queue the same request id twice', async () => {
+    const dir = join(tmpdir(), `claw-bridge-dedupe-test-${Date.now()}`);
+    await mkdir(dir, { recursive: true });
+    const queuePath = join(dir, 'queue.jsonl');
+    const archivePath = join(dir, 'queue.archive.jsonl');
+    const config = {
+      openclawAdapter: 'cli',
+      openclawCliBin: '/missing/openclaw',
+      openclawCliDrainTimeoutMs: 120000,
+      assistantId: 'openclaw',
+      openclawSessionKey: 'agent:openclaw:main',
+      queuePath,
+      queueArchivePath: archivePath,
+      queueMaxAttempts: 3
+    } as BridgeConfig;
+
+    await acceptForOpenClaw(config, event('first copy'));
+    await acceptForOpenClaw(config, event('duplicate copy'));
+
+    const queued = await readFile(queuePath, 'utf8');
+    const lines = queued.split('\n').filter(Boolean);
+    expect(lines).toHaveLength(1);
+    expect(queued).toContain('first copy');
+    expect(queued).not.toContain('duplicate copy');
+    await rm(dir, { recursive: true, force: true });
+  });
+
   it('drains queued events through the OpenClaw CLI and marks them delivered', async () => {
     const dir = join(tmpdir(), `claw-bridge-drain-test-${Date.now()}`);
     await mkdir(dir, { recursive: true });

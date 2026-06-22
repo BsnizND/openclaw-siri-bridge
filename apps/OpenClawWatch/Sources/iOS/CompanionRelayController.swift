@@ -131,6 +131,7 @@ final class CompanionRelayController: NSObject, ObservableObject {
             let sourceContext = metadata["source_context"].flatMap(WatchVoiceSourceContext.init(rawValue:))
             let relayID = relayID(for: item)
             let request = WatchVoiceUploadRequest(
+                requestID: metadata["request_id"] ?? relayID,
                 audioFileURL: fileURL,
                 deviceName: metadata["device_name"] ?? "Apple Watch",
                 appName: metadata["app_name"] ?? "Claw Bridge",

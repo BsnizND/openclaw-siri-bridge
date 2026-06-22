@@ -240,6 +240,7 @@ describe('app routes', () => {
     const res = await request(createApp(config(), { acceptEvent, afterAccepted }))
       .post('/watch/voice')
       .set('Authorization', 'Bearer 0123456789abcdef01234567')
+      .field('request_id', 'watch-upload-request-id')
       .field('device_name', 'Apple Watch Ultra')
       .field('app_name', 'OpenClaw Watch')
       .field('captured_at', '2026-06-14T20:12:00.000Z')
@@ -262,6 +263,7 @@ describe('app routes', () => {
       expect.objectContaining({
         source: 'watch_app',
         raw_text: 'Apple Watch voice message attached.',
+        request_id: 'watch-upload-request-id',
         captured_at: '2026-06-14T20:12:00.000Z',
         device_name: 'Apple Watch Ultra',
         shortcut_name: 'OpenClaw Watch',
@@ -380,6 +382,44 @@ describe('app routes', () => {
       app_platform: 'ios',
       notification_status: 'not_requested'
     });
+  });
+
+  it('reuses the voice response record for duplicate native Watch request ids', async () => {
+    const acceptEvent = vi.fn().mockResolvedValue({ ok: true, queued: true, id: 'watch-voice-id' });
+    const responseDir = join(tmpdir(), `claw-bridge-response-dedupe-test-${Date.now()}`);
+    const app = createApp(config(), {
+      acceptEvent,
+      appResponseStore: new AppResponseStore(responseDir, 60000)
+    });
+
+    const first = await request(app)
+      .post('/watch/voice')
+      .set('Authorization', 'Bearer 0123456789abcdef01234567')
+      .field('request_id', 'same-watch-request')
+      .field('walkie_mode', 'true')
+      .field('recording_duration_seconds', '2.0')
+      .field('app_device_id', 'ios-test-device')
+      .field('app_platform', 'ios')
+      .attach('audio', Buffer.from('audio-ish'), {
+        filename: 'watch-message.m4a',
+        contentType: 'audio/mp4'
+      });
+    const duplicate = await request(app)
+      .post('/watch/voice')
+      .set('Authorization', 'Bearer 0123456789abcdef01234567')
+      .field('request_id', 'same-watch-request')
+      .field('walkie_mode', 'true')
+      .field('recording_duration_seconds', '2.0')
+      .field('app_device_id', 'ios-test-device')
+      .field('app_platform', 'ios')
+      .attach('audio', Buffer.from('audio-ish-again'), {
+        filename: 'watch-message-copy.m4a',
+        contentType: 'audio/mp4'
+      });
+
+    expect(first.status).toBe(202);
+    expect(duplicate.status).toBe(202);
+    expect(duplicate.body.response_id).toBe(first.body.response_id);
   });
 
   it('serves completed app response audio with bearer auth', async () => {

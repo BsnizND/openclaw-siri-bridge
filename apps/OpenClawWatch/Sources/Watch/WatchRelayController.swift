@@ -99,8 +99,10 @@ final class WatchRelayController: NSObject, ObservableObject {
 
     func relayAudioFile(
         _ fileURL: URL,
+        requestID: String,
         deviceName: String,
         appName: String,
+        capturedAt: Date,
         durationSeconds: TimeInterval?,
         location: WatchVoiceLocation?,
         noLocationReason: String? = nil,
@@ -113,10 +115,11 @@ final class WatchRelayController: NSObject, ObservableObject {
         let relayID = UUID().uuidString
         var metadata: [String: String] = [
             "relay_id": relayID,
+            "request_id": requestID,
             "source": "watch_app",
             "device_name": deviceName,
             "app_name": appName,
-            "captured_at": ISO8601DateFormatter().string(from: Date())
+            "captured_at": ISO8601DateFormatter().string(from: capturedAt)
         ]
         if let durationSeconds, durationSeconds.isFinite {
             metadata["recording_duration_seconds"] = String(durationSeconds)

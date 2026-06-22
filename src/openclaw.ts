@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import type { BridgeConfig, DeliveryResult, NormalizedSiriEvent } from './types.js';
-import { drainQueue, queueEvent } from './queue.js';
+import { drainQueue, hasQueuedOrArchivedRequest, queueEvent } from './queue.js';
 
 export interface OpenClawDrainHooks {
   afterDelivered?: (event: NormalizedSiriEvent, result: DeliveryResult) => Promise<void>;
@@ -333,6 +333,9 @@ async function deliverViaHttp(config: BridgeConfig, event: NormalizedSiriEvent):
 }
 
 export async function acceptForOpenClaw(config: BridgeConfig, event: NormalizedSiriEvent): Promise<DeliveryResult> {
+  if (await hasQueuedOrArchivedRequest(config.queuePath, config.queueArchivePath, event.request_id)) {
+    return { ok: true, queued: true, id: event.request_id };
+  }
   await queueEvent(config.queuePath, event, new Error('queued for asynchronous OpenClaw delivery'));
   return { ok: true, queued: true, id: event.request_id };
 }

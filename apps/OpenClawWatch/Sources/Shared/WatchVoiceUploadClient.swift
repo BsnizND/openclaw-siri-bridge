@@ -1,6 +1,7 @@
 import Foundation
 
 public struct WatchVoiceUploadRequest: Sendable {
+    public var requestID: String
     public var audioFileURL: URL
     public var deviceName: String
     public var appName: String
@@ -14,6 +15,7 @@ public struct WatchVoiceUploadRequest: Sendable {
     public var sourceContext: WatchVoiceSourceContext?
 
     public init(
+        requestID: String = UUID().uuidString,
         audioFileURL: URL,
         deviceName: String,
         appName: String,
@@ -26,6 +28,7 @@ public struct WatchVoiceUploadRequest: Sendable {
         appPlatform: String? = nil,
         sourceContext: WatchVoiceSourceContext? = nil
     ) {
+        self.requestID = requestID
         self.audioFileURL = audioFileURL
         self.deviceName = deviceName
         self.appName = appName
@@ -117,6 +120,7 @@ public final class WatchVoiceUploadClient: Sendable {
 
     private func multipartBody(for request: WatchVoiceUploadRequest, boundary: String) throws -> Data {
         var body = Data()
+        body.appendFormField("request_id", value: request.requestID, boundary: boundary)
         body.appendFormField("source", value: "watch_app", boundary: boundary)
         body.appendFormField("device_name", value: request.deviceName, boundary: boundary)
         body.appendFormField("app_name", value: request.appName, boundary: boundary)
