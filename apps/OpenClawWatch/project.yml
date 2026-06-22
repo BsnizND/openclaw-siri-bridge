@@ -7,7 +7,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    CURRENT_PROJECT_VERSION: "20"
+    CURRENT_PROJECT_VERSION: "24"
     MARKETING_VERSION: "0.1.8"
     CODE_SIGN_STYLE: Automatic
     ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
@@ -67,6 +67,8 @@ targets:
         WKWatchKitApp: true
         UIBackgroundModes:
           - audio
+        WKBackgroundModes:
+          - workout-processing
     settings:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -103,9 +105,14 @@ targets:
           NSExtensionPointIdentifier: com.apple.watchkit
         UIBackgroundModes:
           - audio
+        NSHealthShareUsageDescription: Claw Bridge can start a golf workout to keep location ready while you use Golf Mode.
+        NSHealthUpdateUsageDescription: Claw Bridge can record a golf workout while Golf Mode is active.
+        WKBackgroundModes:
+          - workout-processing
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(CLAW_BRIDGE_BUNDLE_ID_PREFIX).ClawBridge.watchkitapp.watchkitextension
+        CODE_SIGN_ENTITLEMENTS: Sources/Watch/OpenClawWatchExtension.entitlements
     configFiles:
       Debug: Config/Signing.xcconfig
       Release: Config/Signing.xcconfig

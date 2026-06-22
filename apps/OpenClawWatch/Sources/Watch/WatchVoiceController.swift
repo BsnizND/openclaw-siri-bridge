@@ -61,6 +61,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
                 sourceContext: sourceContext
             )
         } else {
+            cancelResponsePlayback()
             await startRecording()
         }
     }
@@ -70,6 +71,14 @@ final class WatchVoiceController: NSObject, ObservableObject {
         if case .sending = status { return }
         cancelResponsePlayback()
         await startRecording()
+    }
+
+    func warmLocationForGolfMode() {
+        requestLocationPermissionIfNeeded()
+    }
+
+    func stopPlayback() {
+        cancelResponsePlayback()
     }
 
     private func startRecording() async {

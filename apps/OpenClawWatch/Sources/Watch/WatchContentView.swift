@@ -3,9 +3,11 @@ import SwiftUI
 struct WatchContentView: View {
     @EnvironmentObject private var store: BridgeConfigurationStore
     @StateObject private var controller = WatchVoiceController()
+    @StateObject private var golfWorkout = GolfWorkoutController()
     @ObservedObject private var relay = WatchRelayController.shared
     @AppStorage("clawBridgeWalkieMode") private var walkieMode = false
     @AppStorage("clawBridgeGolfMode") private var golfMode = false
+    @State private var restoredStoredGolfMode = false
 
     var body: some View {
         VStack(spacing: 8) {
@@ -13,15 +15,17 @@ struct WatchContentView: View {
                 ModeToggleButton(
                     title: "Golf",
                     systemImage: "flag.fill",
-                    isOn: $golfMode,
-                    tint: .orange
+                    isOn: golfMode || golfWorkout.isActive,
+                    tint: .orange,
+                    action: toggleGolfMode
                 )
 
                 ModeToggleButton(
                     title: "Speak",
                     systemImage: "speaker.wave.2.fill",
-                    isOn: $walkieMode,
-                    tint: .green
+                    isOn: walkieMode,
+                    tint: .green,
+                    action: { walkieMode.toggle() }
                 )
             }
 
@@ -73,6 +77,10 @@ struct WatchContentView: View {
         .padding(.horizontal, 10)
         .onAppear {
             relay.refreshOutstandingTransfers()
+            restoreGolfModeIfNeeded()
+        }
+        .onDisappear {
+            controller.stopPlayback()
         }
         .onOpenURL { url in
             guard url.scheme == "clawbridge",
@@ -82,6 +90,31 @@ struct WatchContentView: View {
             Task {
                 await controller.startRecordingFromComplication()
             }
+        }
+    }
+
+    private func toggleGolfMode() {
+        Task {
+            controller.stopPlayback()
+            if golfMode || golfWorkout.isActive {
+                golfWorkout.stop()
+                golfMode = false
+                return
+            }
+
+            controller.warmLocationForGolfMode()
+            let started = await golfWorkout.start()
+            golfMode = started
+        }
+    }
+
+    private func restoreGolfModeIfNeeded() {
+        guard golfMode, !restoredStoredGolfMode else { return }
+        restoredStoredGolfMode = true
+        Task {
+            controller.warmLocationForGolfMode()
+            let started = await golfWorkout.start()
+            golfMode = started
         }
     }
 
@@ -99,13 +132,12 @@ struct WatchContentView: View {
 private struct ModeToggleButton: View {
     let title: String
     let systemImage: String
-    @Binding var isOn: Bool
+    let isOn: Bool
     let tint: Color
+    let action: () -> Void
 
     var body: some View {
-        Button {
-            isOn.toggle()
-        } label: {
+        Button(action: action) {
             VStack(spacing: 4) {
                 Image(systemName: systemImage)
                     .font(.system(size: 16, weight: .semibold))

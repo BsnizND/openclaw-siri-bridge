@@ -42,6 +42,10 @@
 	<array>
 		<string>audio</string>
 	</array>
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>workout-processing</string>
+	</array>
 	<key>WKCompanionAppBundleIdentifier</key>
 	<string>$(CLAW_BRIDGE_BUNDLE_ID_PREFIX).ClawBridge</string>
 	<key>WKWatchKitApp</key>
