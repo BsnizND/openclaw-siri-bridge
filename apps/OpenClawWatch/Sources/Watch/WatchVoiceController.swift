@@ -22,6 +22,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
     private let maximumLocationAge: TimeInterval = 120
     private let locationUploadTimeoutNanoseconds: UInt64 = 4_000_000_000
     private let requiredLocationUploadTimeoutNanoseconds: UInt64 = 15_000_000_000
+    private let locationAuthorizationPollNanoseconds: UInt64 = 250_000_000
     private var recorder: AVAudioRecorder?
     private var currentAudioURL: URL?
     private var recordingStartedAt: Date?
@@ -341,7 +342,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
     private func requestLocationPermissionIfNeeded() {
         switch locationManager.authorizationStatus {
         case .notDetermined:
-            locationReadiness = .unknown
+            locationReadiness = .waiting
             detailText = "Allow location to attach it"
             locationManager.requestWhenInUseAuthorization()
         case .authorizedWhenInUse, .authorizedAlways:
@@ -364,13 +365,20 @@ final class WatchVoiceController: NSObject, ObservableObject {
     }
 
     private func locationForUpload(requireLocation: Bool = false) async -> WatchVoiceLocationReceipt {
-        let authorizationStatus = locationManager.authorizationStatus
+        var authorizationStatus = locationManager.authorizationStatus
+        if authorizationStatus == .notDetermined, requireLocation {
+            locationReadiness = .waiting
+            detailText = "Allow location"
+            locationManager.requestWhenInUseAuthorization()
+            authorizationStatus = await waitForLocationAuthorization(timeoutNanoseconds: requiredLocationUploadTimeoutNanoseconds)
+        }
+
         switch authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
             break
         case .notDetermined:
             latestLocation = nil
-            locationReadiness = .unknown
+            locationReadiness = requireLocation ? .unavailable : .unknown
             return WatchVoiceLocationReceipt(location: nil, noLocationReason: "permission_not_determined")
         case .denied:
             latestLocation = nil
@@ -410,6 +418,22 @@ final class WatchVoiceController: NSObject, ObservableObject {
                 }
             }
         }
+    }
+
+    private func waitForLocationAuthorization(timeoutNanoseconds: UInt64) async -> CLAuthorizationStatus {
+        let deadline = Date().addingTimeInterval(TimeInterval(timeoutNanoseconds) / 1_000_000_000)
+        while Date() < deadline {
+            let status = locationManager.authorizationStatus
+            if status != .notDetermined {
+                return status
+            }
+            do {
+                try await Task.sleep(nanoseconds: locationAuthorizationPollNanoseconds)
+            } catch {
+                return locationManager.authorizationStatus
+            }
+        }
+        return locationManager.authorizationStatus
     }
 
     private func resolvePendingLocation(_ location: CLLocation?, noLocationReason: String? = nil) {

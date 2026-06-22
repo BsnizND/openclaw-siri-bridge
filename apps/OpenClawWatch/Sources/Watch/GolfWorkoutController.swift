@@ -33,7 +33,6 @@ final class GolfWorkoutController: NSObject, ObservableObject {
             session.startActivity(with: Date())
             isActive = true
             lastError = nil
-            WKInterfaceDevice.current().play(.start)
             return true
         } catch {
             self.session = nil

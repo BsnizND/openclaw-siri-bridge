@@ -26,6 +26,8 @@
 	<string>$(CLAW_BRIDGE_DEFAULT_BEARER_TOKEN)</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Claw Bridge can relay Watch voice messages to your configured OpenClaw bridge.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Claw Bridge can attach your current location to Watch voice messages when you allow it.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 </dict>

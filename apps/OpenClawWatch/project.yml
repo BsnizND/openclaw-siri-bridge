@@ -7,7 +7,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    CURRENT_PROJECT_VERSION: "25"
+    CURRENT_PROJECT_VERSION: "28"
     MARKETING_VERSION: "0.1.8"
     CODE_SIGN_STYLE: Automatic
     ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
@@ -30,6 +30,7 @@ targets:
         ClawBridgeDefaultBearerToken: $(CLAW_BRIDGE_DEFAULT_BEARER_TOKEN)
         UILaunchScreen: {}
         NSLocalNetworkUsageDescription: Claw Bridge can relay Watch voice messages to your configured OpenClaw bridge.
+        NSLocationWhenInUseUsageDescription: Claw Bridge can attach your current location to Watch voice messages when you allow it.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(CLAW_BRIDGE_BUNDLE_ID_PREFIX).ClawBridge

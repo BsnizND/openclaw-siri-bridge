@@ -105,6 +105,19 @@ struct WatchContentView: View {
         if controller.isRecordControlBusy {
             return .gray
         }
+        if case .failed = controller.status {
+            return .red
+        }
+        if golfMode {
+            switch controller.locationReadiness {
+            case .ready:
+                return .green
+            case .waiting, .unknown:
+                return .yellow
+            case .denied, .unavailable:
+                return .red
+            }
+        }
         return .blue
     }
 
@@ -127,9 +140,12 @@ struct WatchContentView: View {
                 return
             }
 
+            golfMode = true
             controller.warmLocationForGolfMode()
             let started = await golfWorkout.start()
-            golfMode = started
+            if !started {
+                controller.warmLocationForGolfMode()
+            }
         }
     }
 
@@ -148,8 +164,7 @@ struct WatchContentView: View {
         restoredStoredGolfMode = true
         Task {
             controller.warmLocationForGolfMode()
-            let started = await golfWorkout.start()
-            golfMode = started
+            _ = await golfWorkout.start()
         }
     }
 
