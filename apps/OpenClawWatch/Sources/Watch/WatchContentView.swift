@@ -45,7 +45,7 @@ struct WatchContentView: View {
                                 .controlSize(.large)
                                 .tint(.white)
                         } else {
-                            Image(systemName: controller.status.isListening ? "stop.fill" : "mic.fill")
+                            Image(systemName: recordButtonSystemImage)
                                 .font(.system(size: 38, weight: .semibold))
                         }
                     }
@@ -54,8 +54,8 @@ struct WatchContentView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(recordButtonTint)
-                .disabled(controller.isBusy)
-                .accessibilityLabel(controller.status.isListening ? "Stop recording" : "Start recording")
+                .disabled(controller.isReplyPlaying)
+                .accessibilityLabel(recordAccessibilityLabel)
                 .accessibilityValue(recordAccessibilityValue)
 
                 if walkieMode && controller.hasPlayableReply {
@@ -113,12 +113,35 @@ struct WatchContentView: View {
         return .blue
     }
 
+    private var recordButtonSystemImage: String {
+        if controller.status.isListening {
+            return "stop.fill"
+        }
+        if case .failed = controller.status {
+            return "exclamationmark.triangle.fill"
+        }
+        return "mic.fill"
+    }
+
+    private var recordAccessibilityLabel: String {
+        if controller.status.isListening {
+            return "Stop recording"
+        }
+        if case .failed = controller.status {
+            return "Recording failed. Tap to try again"
+        }
+        return "Start recording"
+    }
+
     private var recordAccessibilityValue: String {
         if controller.status.isListening {
             return "Recording"
         }
         if controller.isRecordControlBusy {
-            return "Working"
+            return "Working. Tap to cancel"
+        }
+        if case .failed = controller.status {
+            return "Error"
         }
         return "Ready"
     }
