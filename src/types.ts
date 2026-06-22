@@ -34,6 +34,7 @@ export interface BridgeConfig {
   shareUploadDir: string;
   shareMaxUploadBytes: number;
   watchMinAudioSeconds: number;
+  watchMaxAudioSeconds: number;
   appResponseDir: string;
   appResponseTtlMs: number;
   elevenLabsApiKey?: string;

@@ -165,10 +165,16 @@ async function watchVoiceDurationSeconds(
   );
 }
 
-async function rejectTooShortWatchVoice(config: BridgeConfig, body: Record<string, unknown>, file: UploadedShareFile | undefined) {
+async function validateWatchVoiceDuration(
+  config: BridgeConfig,
+  body: Record<string, unknown>,
+  file: UploadedShareFile | undefined
+) {
   if (!likelyWatchAudioFile(file)) return;
   const minimumSeconds =
     Number.isFinite(config.watchMinAudioSeconds) && config.watchMinAudioSeconds > 0 ? config.watchMinAudioSeconds : 1.5;
+  const maximumSeconds =
+    Number.isFinite(config.watchMaxAudioSeconds) && config.watchMaxAudioSeconds > 0 ? config.watchMaxAudioSeconds : 120;
   const duration = await watchVoiceDurationSeconds(body, file);
   if (duration === undefined) {
     throw new Error('watch voice audio duration is required');
@@ -177,6 +183,11 @@ async function rejectTooShortWatchVoice(config: BridgeConfig, body: Record<strin
   if (duration < minimumSeconds) {
     throw new Error(
       `watch voice audio is too short (${duration.toFixed(2)}s); record at least ${minimumSeconds.toFixed(1)}s`
+    );
+  }
+  if (duration > maximumSeconds) {
+    throw new Error(
+      `watch voice audio is too long (${duration.toFixed(2)}s); record at most ${maximumSeconds.toFixed(0)}s`
     );
   }
 }
@@ -433,7 +444,7 @@ export function createApp(config: BridgeConfig, deps: AppDependencies = {}) {
       try {
         const body = req.body as Record<string, unknown>;
         const file = req.file as UploadedShareFile | undefined;
-        await rejectTooShortWatchVoice(config, body, file);
+        await validateWatchVoiceDuration(config, body, file);
         const transcript =
           file && isAudioMimeType(file.mimetype) ? await transcribeAudioFile(config, file.path) : undefined;
         const event = normalizeWatchVoiceRequest(config, body, file, transcript);

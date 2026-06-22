@@ -18,6 +18,7 @@ function config(): BridgeConfig {
     shareUploadDir: join(tmpdir(), `claw-bridge-share-test-${Date.now()}`),
     shareMaxUploadBytes: 1024 * 1024,
     watchMinAudioSeconds: 1.5,
+    watchMaxAudioSeconds: 120,
     audioTranscribeEnabled: false
   } as BridgeConfig;
 }
@@ -453,6 +454,22 @@ describe('app routes', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('watch voice audio is too short');
+    expect(acceptEvent).not.toHaveBeenCalled();
+  });
+
+  it('rejects too-long native Watch voice uploads before delivery', async () => {
+    const acceptEvent = vi.fn();
+    const res = await request(createApp(config(), { acceptEvent }))
+      .post('/watch/voice')
+      .set('Authorization', 'Bearer 0123456789abcdef01234567')
+      .field('recording_duration_seconds', '121.5')
+      .attach('audio', Buffer.from('audio-ish'), {
+        filename: 'watch-message.m4a',
+        contentType: 'audio/mp4'
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('watch voice audio is too long');
     expect(acceptEvent).not.toHaveBeenCalled();
   });
 

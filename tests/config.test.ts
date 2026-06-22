@@ -37,6 +37,8 @@ describe('config', () => {
     expect(config.allowedSources.has('watch_app')).toBe(true);
     expect(config.shareUploadDir).toBe('./data/uploads');
     expect(config.shareMaxUploadBytes).toBe(50 * 1024 * 1024);
+    expect(config.watchMinAudioSeconds).toBe(1.5);
+    expect(config.watchMaxAudioSeconds).toBe(120);
     expect(config.appResponseDir).toBe('./data/app-responses');
     expect(config.appResponseTtlMs).toBe(24 * 60 * 60 * 1000);
     expect(config.elevenLabsModelId).toBe('eleven_v3');
@@ -119,6 +121,7 @@ describe('config', () => {
       SHARE_UPLOAD_DIR: '/tmp/share-uploads',
       SHARE_MAX_UPLOAD_BYTES: '1048576',
       WATCH_MIN_AUDIO_SECONDS: '1.75',
+      WATCH_MAX_AUDIO_SECONDS: '180',
       AUDIO_TRANSCRIBE_ENABLED: 'true',
       AUDIO_TRANSCRIBE_CLI_BIN: '/opt/homebrew/bin/openclaw',
       AUDIO_TRANSCRIBE_TIMEOUT_MS: '600000',
@@ -128,6 +131,7 @@ describe('config', () => {
     expect(config.shareUploadDir).toBe('/tmp/share-uploads');
     expect(config.shareMaxUploadBytes).toBe(1048576);
     expect(config.watchMinAudioSeconds).toBe(1.75);
+    expect(config.watchMaxAudioSeconds).toBe(180);
     expect(config.audioTranscribeEnabled).toBe(true);
     expect(config.audioTranscribeCliBin).toBe('/opt/homebrew/bin/openclaw');
     expect(config.audioTranscribeTimeoutMs).toBe(600000);

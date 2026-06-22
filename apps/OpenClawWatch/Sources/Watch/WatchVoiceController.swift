@@ -15,12 +15,15 @@ final class WatchVoiceController: NSObject, ObservableObject {
     private let locationManager = CLLocationManager()
     private let minimumRecordingByteCount: UInt64 = 4_096
     private let minimumRecordingDuration: TimeInterval = 1.5
+    private let maximumRecordingDuration: TimeInterval = 120
+    private let maximumRecordingDurationGrace: TimeInterval = 1
     private let maximumLocationAge: TimeInterval = 120
     private let locationUploadTimeoutNanoseconds: UInt64 = 4_000_000_000
     private let requiredLocationUploadTimeoutNanoseconds: UInt64 = 15_000_000_000
     private var recorder: AVAudioRecorder?
     private var currentAudioURL: URL?
     private var recordingStartedAt: Date?
+    private var recordingReachedMaximumDuration = false
     private var latestLocation: CLLocation?
     private var pendingLocationContinuation: CheckedContinuation<WatchVoiceLocationReceipt, Never>?
     private var locationTimeoutTask: Task<Void, Never>?
@@ -80,8 +83,9 @@ final class WatchVoiceController: NSObject, ObservableObject {
                 AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
             ]
             let recorder = try AVAudioRecorder(url: url, settings: settings)
+            recorder.delegate = self
             recorder.prepareToRecord()
-            guard recorder.record() else {
+            guard recorder.record(forDuration: maximumRecordingDuration) else {
                 recorder.deleteRecording()
                 try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
                 throw WatchVoiceRecordingError.failedToStart
@@ -89,6 +93,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
             self.recorder = recorder
             currentAudioURL = url
             recordingStartedAt = Date()
+            recordingReachedMaximumDuration = false
             status = .recording
             detailText = "Tap again to send"
         } catch {
@@ -119,6 +124,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
             try? FileManager.default.removeItem(at: currentAudioURL)
             self.currentAudioURL = nil
             recordingStartedAt = nil
+            recordingReachedMaximumDuration = false
             return
         }
         status = .sending
@@ -132,6 +138,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
             try? FileManager.default.removeItem(at: currentAudioURL)
             self.currentAudioURL = nil
             recordingStartedAt = nil
+            recordingReachedMaximumDuration = false
             return
         }
         detailText = location == nil ? "Uploading without location" : "Uploading"
@@ -150,6 +157,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
             try? FileManager.default.removeItem(at: currentAudioURL)
             self.currentAudioURL = nil
             recordingStartedAt = nil
+            recordingReachedMaximumDuration = false
             if wantsVoiceReply, let responseID = response.response_id {
                 lastResponseID = responseID
                 status = .sent
@@ -278,6 +286,9 @@ final class WatchVoiceController: NSObject, ObservableObject {
         guard duration >= minimumRecordingDuration else {
             throw WatchVoiceRecordingError.tooShort
         }
+        guard duration <= maximumRecordingDuration + maximumRecordingDurationGrace else {
+            throw WatchVoiceRecordingError.tooLong(maximumRecordingDuration)
+        }
         let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
         let byteCount = attributes[.size] as? UInt64 ?? 0
         guard byteCount >= minimumRecordingByteCount else {
@@ -374,6 +385,18 @@ final class WatchVoiceController: NSObject, ObservableObject {
     }
 }
 
+extension WatchVoiceController: AVAudioRecorderDelegate {
+    nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+        Task { @MainActor in
+            guard self.recorder === recorder, self.status.isListening else { return }
+            if flag && recorder.currentTime >= self.maximumRecordingDuration - 0.25 {
+                self.recordingReachedMaximumDuration = true
+                self.detailText = "Max length reached. Tap to send."
+            }
+        }
+    }
+}
+
 extension WatchVoiceController: CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         Task { @MainActor in
@@ -421,12 +444,14 @@ enum WatchVoiceRecordingError: LocalizedError {
     case failedToStart
     case emptyRecording
     case tooShort
+    case tooLong(TimeInterval)
 
     var errorDescription: String? {
         switch self {
         case .failedToStart: "Recording could not start."
         case .emptyRecording: "Nothing recorded. Try again."
         case .tooShort: "Message was too short. Try again."
+        case .tooLong(let seconds): "Message is too long. Keep Watch messages under \(Int(seconds)) seconds."
         }
     }
 }
