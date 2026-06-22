@@ -60,6 +60,7 @@ public final class WalkieResponseClient: Sendable {
             throw WalkieResponseError.invalidEndpoint
         }
         var request = URLRequest(url: baseURL.appending(path: "app/responses/\(id)"))
+        request.timeoutInterval = 10
         request.setValue("Bearer \(configuration.bearerToken)", forHTTPHeaderField: "Authorization")
         let (data, urlResponse) = try await session.data(for: request)
         guard let http = urlResponse as? HTTPURLResponse else {
@@ -110,6 +111,7 @@ public final class WalkieResponseClient: Sendable {
             throw WalkieResponseError.invalidEndpoint
         }
         var request = URLRequest(url: baseURL.appending(path: "app/responses/\(id)/audio"))
+        request.timeoutInterval = 45
         request.setValue("Bearer \(configuration.bearerToken)", forHTTPHeaderField: "Authorization")
         let (temporaryURL, urlResponse) = try await session.download(for: request)
         guard let http = urlResponse as? HTTPURLResponse else {

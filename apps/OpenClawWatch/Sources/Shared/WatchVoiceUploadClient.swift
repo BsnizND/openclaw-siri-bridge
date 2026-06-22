@@ -93,6 +93,7 @@ public final class WatchVoiceUploadClient: Sendable {
         let boundary = "OpenClawWatch-\(UUID().uuidString)"
         var urlRequest = URLRequest(url: endpoint)
         urlRequest.httpMethod = "POST"
+        urlRequest.timeoutInterval = 30
         urlRequest.setValue("Bearer \(configuration.bearerToken)", forHTTPHeaderField: "Authorization")
         urlRequest.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         urlRequest.httpBody = try multipartBody(for: request, boundary: boundary)

@@ -31,6 +31,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
     private var locationTimeoutTask: Task<Void, Never>?
     private var responsePlaybackTask: Task<Void, Never>?
     private var responsePlaybackToken: UUID?
+    private var sendOperationToken: UUID?
 
     var isBusy: Bool {
         isRecordControlBusy || isReplyPlaying
@@ -72,6 +73,8 @@ final class WatchVoiceController: NSObject, ObservableObject {
                 wantsVoiceReply: wantsVoiceReply,
                 sourceContext: sourceContext
             )
+        } else if isRecordControlBusy {
+            cancelCurrentAction()
         } else {
             cancelResponsePlayback()
             await startRecording()
@@ -95,6 +98,14 @@ final class WatchVoiceController: NSObject, ObservableObject {
 
     func clearReplyPlayback() {
         cancelResponsePlayback(clearLastResponse: true)
+    }
+
+    func cancelCurrentAction() {
+        sendOperationToken = nil
+        resolvePendingLocation(nil, noLocationReason: "cancelled")
+        cancelResponsePlayback(clearLastResponse: true)
+        status = .idle
+        detailText = nil
     }
 
     var hasPlayableReply: Bool {
@@ -167,9 +178,15 @@ final class WatchVoiceController: NSObject, ObservableObject {
             return
         }
         status = .sending
+        let sendToken = UUID()
+        sendOperationToken = sendToken
         let requiresLocation = sourceContext == .golfMode
         detailText = requiresLocation ? "Getting GPS" : "Getting location"
         let locationReceipt = await locationForUpload(requireLocation: requiresLocation)
+        guard sendOperationToken == sendToken else {
+            cleanupCurrentRecording(at: currentAudioURL)
+            return
+        }
         let location = locationReceipt.location
         detailText = location == nil ? "Uploading without location" : "Uploading"
         do {
@@ -184,9 +201,11 @@ final class WatchVoiceController: NSObject, ObservableObject {
                 sourceContext: sourceContext
             )
             let response = try await uploader.upload(request, configuration: configuration)
-            try? FileManager.default.removeItem(at: currentAudioURL)
-            self.currentAudioURL = nil
-            recordingStartedAt = nil
+            guard sendOperationToken == sendToken else {
+                cleanupCurrentRecording(at: currentAudioURL)
+                return
+            }
+            cleanupCurrentRecording(at: currentAudioURL)
             if wantsVoiceReply, let responseID = response.response_id {
                 lastResponseID = responseID
                 status = .sent
@@ -199,6 +218,10 @@ final class WatchVoiceController: NSObject, ObservableObject {
                 WKInterfaceDevice.current().play(.success)
             }
         } catch {
+            guard sendOperationToken == sendToken else {
+                cleanupCurrentRecording(at: currentAudioURL)
+                return
+            }
             NSLog("Claw Bridge Watch direct upload failed: \(error.localizedDescription)")
             do {
                 _ = try WatchRelayController.shared.relayAudioFile(
@@ -219,6 +242,9 @@ final class WatchVoiceController: NSObject, ObservableObject {
                 detailText = error.localizedDescription
                 WKInterfaceDevice.current().play(.failure)
             }
+        }
+        if sendOperationToken == sendToken {
+            sendOperationToken = nil
         }
     }
 
@@ -247,6 +273,14 @@ final class WatchVoiceController: NSObject, ObservableObject {
         default:
             break
         }
+    }
+
+    private func cleanupCurrentRecording(at url: URL) {
+        try? FileManager.default.removeItem(at: url)
+        if currentAudioURL == url {
+            currentAudioURL = nil
+        }
+        recordingStartedAt = nil
     }
 
     private func beginResponsePlayback(
