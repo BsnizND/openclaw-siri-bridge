@@ -1,6 +1,7 @@
 import AVFoundation
 import CoreLocation
 import Foundation
+import WatchKit
 
 @MainActor
 final class WatchVoiceController: NSObject, ObservableObject {
@@ -8,6 +9,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
     @Published private(set) var detailText: String?
     @Published private(set) var lastResponseID: String?
     @Published private(set) var isAwaitingReply = false
+    @Published private(set) var locationReadiness: WatchLocationReadiness = .unknown
 
     private let uploader = WatchVoiceUploadClient()
     private let responseClient = WalkieResponseClient()
@@ -23,7 +25,6 @@ final class WatchVoiceController: NSObject, ObservableObject {
     private var recorder: AVAudioRecorder?
     private var currentAudioURL: URL?
     private var recordingStartedAt: Date?
-    private var recordingReachedMaximumDuration = false
     private var latestLocation: CLLocation?
     private var pendingLocationContinuation: CheckedContinuation<WatchVoiceLocationReceipt, Never>?
     private var locationTimeoutTask: Task<Void, Never>?
@@ -41,6 +42,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        refreshLocationReadiness()
     }
 
     func toggleRecording(
@@ -93,12 +95,13 @@ final class WatchVoiceController: NSObject, ObservableObject {
             self.recorder = recorder
             currentAudioURL = url
             recordingStartedAt = Date()
-            recordingReachedMaximumDuration = false
             status = .recording
             detailText = "Tap again to send"
+            WKInterfaceDevice.current().play(.start)
         } catch {
             status = .failed(error.localizedDescription)
             detailText = error.localizedDescription
+            WKInterfaceDevice.current().play(.failure)
         }
     }
 
@@ -124,7 +127,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
             try? FileManager.default.removeItem(at: currentAudioURL)
             self.currentAudioURL = nil
             recordingStartedAt = nil
-            recordingReachedMaximumDuration = false
+            WKInterfaceDevice.current().play(.failure)
             return
         }
         status = .sending
@@ -138,7 +141,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
             try? FileManager.default.removeItem(at: currentAudioURL)
             self.currentAudioURL = nil
             recordingStartedAt = nil
-            recordingReachedMaximumDuration = false
+            WKInterfaceDevice.current().play(.failure)
             return
         }
         detailText = location == nil ? "Uploading without location" : "Uploading"
@@ -157,15 +160,16 @@ final class WatchVoiceController: NSObject, ObservableObject {
             try? FileManager.default.removeItem(at: currentAudioURL)
             self.currentAudioURL = nil
             recordingStartedAt = nil
-            recordingReachedMaximumDuration = false
             if wantsVoiceReply, let responseID = response.response_id {
                 lastResponseID = responseID
                 status = .sent
                 detailText = "Sent. Waiting for Jay"
+                WKInterfaceDevice.current().play(.success)
                 beginResponsePlayback(responseID, configuration: configuration, preserveSentStatus: true)
             } else {
                 status = .sent
                 detailText = location == nil ? "Sent without location" : "Sent with location"
+                WKInterfaceDevice.current().play(.success)
             }
         } catch {
             NSLog("Claw Bridge Watch direct upload failed: \(error.localizedDescription)")
@@ -182,9 +186,11 @@ final class WatchVoiceController: NSObject, ObservableObject {
                 )
                 status = .relayPending
                 detailText = "Transferring to iPhone"
+                WKInterfaceDevice.current().play(.notification)
             } catch {
                 status = .failed(error.localizedDescription)
                 detailText = error.localizedDescription
+                WKInterfaceDevice.current().play(.failure)
             }
         }
     }
@@ -264,6 +270,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
             guard !Task.isCancelled else { return }
             status = .failed(error.localizedDescription)
             detailText = error.localizedDescription
+            WKInterfaceDevice.current().play(.failure)
         }
     }
 
@@ -310,14 +317,18 @@ final class WatchVoiceController: NSObject, ObservableObject {
     private func requestLocationPermissionIfNeeded() {
         switch locationManager.authorizationStatus {
         case .notDetermined:
+            locationReadiness = .unknown
             detailText = "Allow location to attach it"
             locationManager.requestWhenInUseAuthorization()
         case .authorizedWhenInUse, .authorizedAlways:
+            locationReadiness = freshLocation() == nil ? .waiting : .ready
             locationManager.requestLocation()
         case .denied, .restricted:
             latestLocation = nil
+            locationReadiness = .denied
         @unknown default:
             latestLocation = nil
+            locationReadiness = .unknown
         }
     }
 
@@ -335,18 +346,23 @@ final class WatchVoiceController: NSObject, ObservableObject {
             break
         case .notDetermined:
             latestLocation = nil
+            locationReadiness = .unknown
             return WatchVoiceLocationReceipt(location: nil, noLocationReason: "permission_not_determined")
         case .denied:
             latestLocation = nil
+            locationReadiness = .denied
             return WatchVoiceLocationReceipt(location: nil, noLocationReason: "permission_denied")
         case .restricted:
             latestLocation = nil
+            locationReadiness = .denied
             return WatchVoiceLocationReceipt(location: nil, noLocationReason: "permission_restricted")
         @unknown default:
             latestLocation = nil
+            locationReadiness = .unknown
             return WatchVoiceLocationReceipt(location: nil, noLocationReason: "permission_unknown")
         }
         if let latestLocation = freshLocation() {
+            locationReadiness = .ready
             return WatchVoiceLocationReceipt(location: WatchVoiceLocation(location: latestLocation))
         }
 
@@ -354,6 +370,7 @@ final class WatchVoiceController: NSObject, ObservableObject {
             returning: WatchVoiceLocationReceipt(location: nil, noLocationReason: "superseded_location_request")
         )
         locationTimeoutTask?.cancel()
+        locationReadiness = .waiting
         locationManager.requestLocation()
         let timeoutNanoseconds = requireLocation ? requiredLocationUploadTimeoutNanoseconds : locationUploadTimeoutNanoseconds
         return await withCheckedContinuation { continuation in
@@ -376,12 +393,26 @@ final class WatchVoiceController: NSObject, ObservableObject {
         pendingLocationContinuation = nil
         locationTimeoutTask?.cancel()
         locationTimeoutTask = nil
+        locationReadiness = location == nil ? .unavailable : .ready
         continuation.resume(
             returning: WatchVoiceLocationReceipt(
                 location: location.map(WatchVoiceLocation.init(location:)),
                 noLocationReason: location == nil ? noLocationReason ?? "location_unavailable" : nil
             )
         )
+    }
+
+    private func refreshLocationReadiness() {
+        switch locationManager.authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            locationReadiness = freshLocation() == nil ? .waiting : .ready
+        case .denied, .restricted:
+            locationReadiness = .denied
+        case .notDetermined:
+            locationReadiness = .unknown
+        @unknown default:
+            locationReadiness = .unknown
+        }
     }
 }
 
@@ -390,8 +421,8 @@ extension WatchVoiceController: AVAudioRecorderDelegate {
         Task { @MainActor in
             guard self.recorder === recorder, self.status.isListening else { return }
             if flag && recorder.currentTime >= self.maximumRecordingDuration - 0.25 {
-                self.recordingReachedMaximumDuration = true
                 self.detailText = "Max length reached. Tap to send."
+                WKInterfaceDevice.current().play(.notification)
             }
         }
     }
@@ -402,6 +433,7 @@ extension WatchVoiceController: CLLocationManagerDelegate {
         Task { @MainActor in
             let location = locations.last
             latestLocation = location
+            locationReadiness = location == nil ? .unavailable : .ready
             resolvePendingLocation(location)
         }
     }
@@ -409,6 +441,7 @@ extension WatchVoiceController: CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Task { @MainActor in
             latestLocation = nil
+            locationReadiness = .unavailable
             resolvePendingLocation(nil, noLocationReason: "location_error")
             if status.isListening {
                 detailText = "Listening without location"
@@ -421,8 +454,14 @@ extension WatchVoiceController: CLLocationManagerDelegate {
         Task { @MainActor in
             switch authorizationStatus {
             case .authorizedWhenInUse, .authorizedAlways:
+                locationReadiness = freshLocation() == nil ? .waiting : .ready
                 locationManager.requestLocation()
+            case .denied, .restricted:
+                locationReadiness = .denied
+                latestLocation = nil
+                resolvePendingLocation(nil, noLocationReason: "permission_unavailable")
             default:
+                locationReadiness = .unknown
                 latestLocation = nil
                 resolvePendingLocation(nil, noLocationReason: "permission_unavailable")
             }

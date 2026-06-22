@@ -8,27 +8,22 @@ struct WatchContentView: View {
     @AppStorage("clawBridgeGolfMode") private var golfMode = false
 
     var body: some View {
-        VStack(spacing: 10) {
-            AssistantPortraitView(status: controller.status)
-                .frame(maxWidth: 116)
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                ModeToggleButton(
+                    title: "Golf",
+                    systemImage: "flag.fill",
+                    isOn: $golfMode,
+                    tint: .orange
+                )
 
-            Text(displayedStatusTitle)
-                .font(.headline)
-                .lineLimit(1)
-
-            Toggle(isOn: $walkieMode) {
-                Image(systemName: walkieMode ? "waveform.circle.fill" : "paperplane.circle")
+                ModeToggleButton(
+                    title: "Speak",
+                    systemImage: "speaker.wave.2.fill",
+                    isOn: $walkieMode,
+                    tint: .green
+                )
             }
-            .labelsHidden()
-            .tint(.green)
-            .accessibilityLabel("Walkie mode")
-
-            Toggle(isOn: $golfMode) {
-                Image(systemName: golfMode ? "flag.checkered.circle.fill" : "flag.circle")
-            }
-            .labelsHidden()
-            .tint(.orange)
-            .accessibilityLabel("Golf mode")
 
             Button {
                 Task {
@@ -39,10 +34,22 @@ struct WatchContentView: View {
                     )
                 }
             } label: {
-                Image(systemName: controller.status.isListening ? "stop.fill" : "mic.fill")
-                    .font(.title2.weight(.semibold))
+                ZStack(alignment: .topTrailing) {
+                    VStack(spacing: 8) {
+                        Image(systemName: controller.status.isListening ? "stop.fill" : "mic.fill")
+                            .font(.system(size: 36, weight: .semibold))
+                        Text(recordButtonTitle)
+                            .font(.headline)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
                     .frame(maxWidth: .infinity)
-                    .frame(height: 44)
+                    .frame(height: 92)
+
+                    LocationReadinessDot(readiness: controller.locationReadiness)
+                        .padding(10)
+                        .opacity(golfMode ? 1 : 0.45)
+                }
             }
             .buttonStyle(.borderedProminent)
             .tint(controller.status.isListening ? .red : .blue)
@@ -62,14 +69,6 @@ struct WatchContentView: View {
                 .buttonStyle(.bordered)
                 .accessibilityLabel("Replay Jay")
             }
-
-            if let detail = displayedDetailText {
-                Text(detail)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(3)
-            }
         }
         .padding(.horizontal, 10)
         .onAppear {
@@ -86,28 +85,69 @@ struct WatchContentView: View {
         }
     }
 
-    private var displayedStatusTitle: String {
-        if shouldShowRelayState {
-            return relay.handoffState.title ?? "Relay Unknown"
+    private var recordButtonTitle: String {
+        if controller.status.isListening {
+            return "Stop"
         }
-        return controller.status.title
+        if controller.isBusy {
+            return "Busy"
+        }
+        return "Record"
+    }
+}
+
+private struct ModeToggleButton: View {
+    let title: String
+    let systemImage: String
+    @Binding var isOn: Bool
+    let tint: Color
+
+    var body: some View {
+        Button {
+            isOn.toggle()
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 16, weight: .semibold))
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 38)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(isOn ? tint : .gray)
+        .accessibilityLabel(title)
+        .accessibilityValue(isOn ? "On" : "Off")
+    }
+}
+
+private struct LocationReadinessDot: View {
+    let readiness: WatchLocationReadiness
+
+    var body: some View {
+        Circle()
+            .fill(color)
+            .frame(width: 12, height: 12)
+            .overlay(
+                Circle()
+                    .stroke(.white.opacity(0.85), lineWidth: 1)
+            )
+            .accessibilityLabel(readiness.accessibilityLabel)
     }
 
-    private var displayedDetailText: String? {
-        if shouldShowRelayState {
-            return relay.handoffState.detailText ?? "No active iPhone transfer found"
-        }
-        return controller.detailText
-    }
-
-    private var shouldShowRelayState: Bool {
-        switch controller.status {
-        case .relayPending:
-            return true
-        case .idle:
-            return relay.handoffState.isActive
-        default:
-            return false
+    private var color: Color {
+        switch readiness {
+        case .ready:
+            .green
+        case .waiting:
+            .yellow
+        case .denied, .unavailable:
+            .red
+        case .unknown:
+            .gray
         }
     }
 }

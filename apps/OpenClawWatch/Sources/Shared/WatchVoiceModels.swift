@@ -76,6 +76,24 @@ public enum WatchVoiceStatus: Equatable, Sendable {
     }
 }
 
+public enum WatchLocationReadiness: Equatable, Sendable {
+    case unknown
+    case waiting
+    case ready
+    case unavailable
+    case denied
+
+    public var accessibilityLabel: String {
+        switch self {
+        case .unknown: "GPS unknown"
+        case .waiting: "GPS warming"
+        case .ready: "GPS ready"
+        case .unavailable: "GPS unavailable"
+        case .denied: "GPS denied"
+        }
+    }
+}
+
 public enum WatchRelayBridgeState: String, Equatable, Sendable {
     case receivedByPhone = "received_by_phone"
     case queuedOnPhone = "queued_on_phone"
@@ -137,15 +155,5 @@ public struct WatchRelayBridgeSnapshot: Equatable, Sendable {
             context[Self.detailKey] = detail
         }
         return context
-    }
-}
-
-public struct AssistantPortraitCrop: Equatable, Sendable {
-    public var focusX: Double
-    public var focusY: Double
-
-    public init(focusX: Double = 0.5, focusY: Double = 0.25) {
-        self.focusX = focusX
-        self.focusY = focusY
     }
 }

@@ -19,8 +19,8 @@ struct OpenClawCompanionApp: App {
                     appDelegate.configurationProvider = { store.configuration }
                     CompanionRelayController.shared.start(store: store)
                 }
-                .onChange(of: scenePhase) { phase in
-                    if phase == .active {
+                .onChange(of: scenePhase) {
+                    if scenePhase == .active {
                         CompanionRelayController.shared.drainPending(reason: "foreground")
                     }
                 }
