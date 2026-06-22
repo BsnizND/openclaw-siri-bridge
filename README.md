@@ -28,6 +28,32 @@ The bridge is assistant-agnostic. Configure the OpenClaw session and Telegram re
 
 This project is an independent integration. It is not affiliated with Apple, Telegram, or OpenClaw maintainers unless stated otherwise.
 
+## Quick start with Codex
+
+Clone the repo, open it with Codex, and paste:
+
+```text
+Set up claw-bridge for my iPhone and Apple Watch. Use my bridge base URL,
+bearer token, and Apple Developer team to generate local config, build the
+iOS/watchOS apps, and build the Shortcuts without committing secrets.
+```
+
+Codex has first-class surfaces to work from:
+
+- `apps/OpenClawWatch/`: SwiftUI iOS companion app, watchOS app, WidgetKit complication, XcodeGen spec, checked-in Xcode project, and ignored local config examples.
+- [Native Apple Watch App](docs/native-watch-app.md): signing, bridge URL, token, Watch install, complication, relay fallback, and troubleshooting guide.
+- [Agent Shortcut Build Guide](docs/agent-shortcut-build.md): agent-facing Cherri workflow for generating the local `Talk to OpenClaw.shortcut` and `Share with OpenClaw.shortcut` files.
+- [Shortcut Setup](docs/shortcut-setup.md): manual and generated Shortcut import details.
+
+For the bridge server only:
+
+```bash
+npm install
+cp examples/env.example .env
+npm run build
+npm start
+```
+
 ## What makes it different
 
 - **Hands-free capture:** invoke Siri through AirPods, dictate the request, and let OpenClaw reply in the chat thread where the assistant already lives.
@@ -78,35 +104,6 @@ Over time, the assistant has more of your actual context: the links you saved, t
 
 Voice capture uses a simple two-step flow: invoke the shortcut, then dictate.
 
-## Quick start
-
-```bash
-npm install
-cp examples/env.example .env
-npm run build
-npm start
-```
-
-## Codex-ready Apple setup
-
-The intended local install loop is simple: clone the repo, give it to Codex, and
-ask Codex to set up Claw Bridge for your iPhone and Apple Watch.
-
-Codex has first-class surfaces to work from:
-
-- `apps/OpenClawWatch/`: SwiftUI iOS companion app, watchOS app, WidgetKit complication, XcodeGen spec, checked-in Xcode project, and ignored local config examples.
-- [Native Apple Watch App](docs/native-watch-app.md): signing, bridge URL, token, Watch install, complication, relay fallback, and troubleshooting guide.
-- [Agent Shortcut Build Guide](docs/agent-shortcut-build.md): agent-facing Cherri workflow for generating the local `Talk to OpenClaw.shortcut` and `Share with OpenClaw.shortcut` files.
-- [Shortcut Setup](docs/shortcut-setup.md): manual and generated Shortcut import details.
-
-A good setup prompt is:
-
-```text
-Set up claw-bridge for my iPhone and Apple Watch. Use my bridge base URL,
-bearer token, and Apple Developer team to generate local config, build the
-iOS/watchOS apps, and build the Shortcuts without committing secrets.
-```
-
 ## Release artifacts
 
 This repo releases the bridge server source/package, token-free Shortcut
@@ -116,6 +113,8 @@ locally with the user's Apple Developer team and unique bundle identifier prefix
 through Xcode or Codex-driven Xcode commands. See
 [Native Apple Watch App](docs/native-watch-app.md) and
 [Shortcut Setup](docs/shortcut-setup.md).
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 Generate a token:
 

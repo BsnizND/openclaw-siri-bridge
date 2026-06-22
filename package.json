@@ -1,6 +1,6 @@
 {
   "name": "claw-bridge",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Codex-ready iPhone and Apple Watch capture kit for OpenClaw: native watchOS push-to-talk, iOS share sheet, and Siri Shortcuts.",
   "type": "module",
   "main": "dist/src/index.js",
